@@ -1,0 +1,9 @@
+node_modules
+.next
+.expo
+.turbo
+dist
+build
+pnpm-lock.yaml
+**/*.generated.*
+packages/db/generated
