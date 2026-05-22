@@ -8,9 +8,10 @@ dist/
 build/
 .next/
 out/
-.expo/
-.expo-shared/
-.turbo/
+
+# Cloudflare Workers / OpenNext
+.open-next/
+.wrangler/
 
 # Env
 .env
@@ -37,16 +38,7 @@ Thumbs.db
 desktop.ini
 
 # Prisma
-packages/db/generated/
-
-# Native
-*.keystore
-*.jks
-*.p8
-*.p12
-*.mobileprovision
-ios/
-android/
+prisma/generated/
 
 # Cache
 .eslintcache

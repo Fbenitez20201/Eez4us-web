@@ -1,18 +1,15 @@
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
 
-import shared from '../../tailwind.config.shared.js';
-
 const config: Config = {
-  ...shared,
   darkMode: ['class'],
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {
-    ...shared.theme,
     extend: {
-      ...shared.theme?.extend,
+      fontFamily: {
+        sans: ['Nunito', 'system-ui', 'sans-serif'],
+      },
       colors: {
-        ...shared.theme?.extend?.colors,
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -46,6 +43,11 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+      },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
     },
   },
