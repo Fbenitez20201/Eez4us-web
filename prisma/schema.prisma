@@ -8,21 +8,46 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ------ better-auth core ------
+// ============================================
+// better-auth core
+// ============================================
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   name          String?
   image         String?
-  schoolId      String?
-  role          String    @default("parent")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-  school        School?   @relation(fields: [schoolId], references: [id])
+
+  // Eez4us custom fields
+  schoolId  String?
+  role      String  @default("parent") // parent | director | support_staff | vendor | super_admin
+  phoneE164 String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+  school   School?   @relation(fields: [schoolId], references: [id])
+
+  // parent-specific
+  authorizedFamilies AuthorizedFamily[]
+  vehicles           Vehicle[]
+  parentStudents     ParentStudent[]
+  trips              Trip[]             @relation("TripParent")
+
+  // staff
+  finalizedTrips Trip[] @relation("TripFinalizedBy")
+
+  // invitations claimed
+  claimedInvitation Invitation? @relation("InvitationClaimedBy")
+
+  // vendor
+  vendor Vendor?
+
+  // tickets
+  ticketsReported SupportTicket[]
 
   @@index([schoolId])
   @@map("users")
@@ -69,14 +94,365 @@ model Verification {
   @@map("verifications")
 }
 
-// ------ Eez4us core (placeholder; expandir cuando llegue la presentación) ------
+// ============================================
+// Schools + pickup points + grades + students
+// ============================================
 
 model School {
-  id        String   @id @default(cuid())
-  name      String
+  id           String  @id @default(cuid())
+  name         String
+  internalCode String  @unique // código corto único para asociar padres
+  addressText  String?
+  addressLat   Float?
+  addressLng   Float?
+
+  stripeCustomerId String? @unique
+
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  users     User[]
+
+  users             User[]
+  pickupPoints      PickupPoint[]
+  grades            Grade[]
+  students          Student[]
+  invitations       Invitation[]
+  trips             Trip[]
+  subscription      Subscription?
+  tickets           SupportTicket[]
+  enrolledByVendors VendorSchool[]
 
   @@map("schools")
+}
+
+model PickupPoint {
+  id           String   @id @default(cuid())
+  schoolId     String
+  name         String   // "Puerta principal", "Puerta lateral"
+  centerLat    Float
+  centerLng    Float
+  radiusMeters Int      @default(150)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  trips  Trip[]
+
+  @@index([schoolId])
+  @@map("pickup_points")
+}
+
+model Grade {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String   // "Primero A"
+  createdAt DateTime @default(now())
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  students Student[]
+
+  @@unique([schoolId, name])
+  @@map("grades")
+}
+
+model Student {
+  id         String    @id @default(cuid())
+  schoolId   String
+  gradeId    String?
+  firstName  String
+  lastName   String
+  birthDate  DateTime?
+  externalId String? // matrícula interna de la escuela
+  active     Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  school       School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  grade        Grade?          @relation(fields: [gradeId], references: [id])
+  parents      ParentStudent[]
+  tripStudents TripStudent[]
+
+  @@unique([schoolId, externalId])
+  @@index([schoolId])
+  @@index([gradeId])
+  @@map("students")
+}
+
+model ParentStudent {
+  id        String   @id @default(cuid())
+  parentId  String
+  studentId String
+  createdAt DateTime @default(now())
+
+  parent  User    @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+  @@map("parent_students")
+}
+
+// ============================================
+// Parent assets
+// ============================================
+
+model Vehicle {
+  id        String   @id @default(cuid())
+  parentId  String
+  plate     String
+  model     String
+  color     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  parent User   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  trips  Trip[]
+
+  @@index([parentId])
+  @@map("vehicles")
+}
+
+model AuthorizedFamily {
+  id           String   @id @default(cuid())
+  parentId     String
+  fullName     String
+  relationship String? // "Tío", "Abuela"
+  idNumber     String?
+  idPhotoUrl   String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  parent User   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  trips  Trip[]
+
+  @@index([parentId])
+  @@map("authorized_families")
+}
+
+// ============================================
+// Invitations (Excel-driven parent onboarding)
+// ============================================
+
+enum InvitationChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum InvitationStatus {
+  PENDING
+  SENT
+  CLAIMED
+  EXPIRED
+  REVOKED
+}
+
+model Invitation {
+  id              String            @id @default(cuid())
+  schoolId        String
+  token           String            @unique
+  channel         InvitationChannel
+  contactValue    String // email address O phone E.164
+  recipientName   String?
+  studentIds      String[] // los students que se atan al claim
+  status          InvitationStatus  @default(PENDING)
+  expiresAt       DateTime
+  sentAt          DateTime?
+  claimedAt       DateTime?
+  claimedByUserId String?           @unique
+  createdAt       DateTime          @default(now())
+
+  school    School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  claimedBy User?  @relation("InvitationClaimedBy", fields: [claimedByUserId], references: [id])
+
+  @@index([schoolId])
+  @@index([contactValue])
+  @@index([status])
+  @@map("invitations")
+}
+
+// ============================================
+// Trips (the "voy en camino" flow)
+// ============================================
+
+enum TripStatus {
+  EN_CAMINO
+  EN_ZONA
+  ENTREGADO
+  CANCELADO
+}
+
+enum TripEventType {
+  STARTED
+  POSITION_UPDATE
+  ARRIVED_GEOFENCE
+  DELIVERED_MANUAL
+  CANCELLED
+}
+
+model Trip {
+  id                 String  @id @default(cuid())
+  schoolId           String
+  pickupPointId      String
+  parentId           String
+  vehicleId          String
+  authorizedFamilyId String?
+
+  status            TripStatus @default(EN_CAMINO)
+  startedAt         DateTime   @default(now())
+  arrivedAt         DateTime? // entró al geofence
+  deliveredAt       DateTime? // staff lo finalizó
+  endedAt           DateTime?
+  finalizedByUserId String?
+
+  // última telemetría
+  lastLat        Float?
+  lastLng        Float?
+  lastHeadingDeg Float?
+  lastSpeedMps   Float?
+  lastPositionAt DateTime?
+
+  // computado por backend
+  etaSeconds   Int?
+  etaUpdatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school           School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  pickupPoint      PickupPoint       @relation(fields: [pickupPointId], references: [id])
+  parent           User              @relation("TripParent", fields: [parentId], references: [id])
+  vehicle          Vehicle           @relation(fields: [vehicleId], references: [id])
+  authorizedFamily AuthorizedFamily? @relation(fields: [authorizedFamilyId], references: [id])
+  finalizedBy      User?             @relation("TripFinalizedBy", fields: [finalizedByUserId], references: [id])
+
+  tripStudents TripStudent[]
+  events       TripEvent[]
+
+  @@index([schoolId, status])
+  @@index([pickupPointId, status])
+  @@index([parentId, startedAt])
+  @@map("trips")
+}
+
+model TripStudent {
+  id        String @id @default(cuid())
+  tripId    String
+  studentId String
+
+  trip    Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([tripId, studentId])
+  @@index([studentId])
+  @@map("trip_students")
+}
+
+model TripEvent {
+  id        String        @id @default(cuid())
+  tripId    String
+  type      TripEventType
+  timestamp DateTime      @default(now())
+  metadata  Json?
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, timestamp])
+  @@map("trip_events")
+}
+
+// ============================================
+// Sales & commissions
+// ============================================
+
+model Vendor {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  commissionPct Float    @default(0.10)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrolledSchools VendorSchool[]
+
+  @@map("vendors")
+}
+
+model VendorSchool {
+  id         String   @id @default(cuid())
+  vendorId   String
+  schoolId   String
+  enrolledAt DateTime @default(now())
+
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([vendorId, schoolId])
+  @@map("vendor_schools")
+}
+
+// ============================================
+// Stripe billing (per school)
+// ============================================
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  PAUSED
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  schoolId             String             @unique
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(TRIALING)
+  pricePerStudent      Float              @default(10) // USD/alumno/mes
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAt             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ============================================
+// Support
+// ============================================
+
+enum TicketType {
+  BUG
+  IMPROVEMENT
+  SUPPORT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model SupportTicket {
+  id           String       @id @default(cuid())
+  reportedById String
+  schoolId     String?
+  type         TicketType
+  title        String
+  description  String
+  status       TicketStatus @default(OPEN)
+  createdAt    DateTime     @default(now())
+  resolvedAt   DateTime?
+
+  reportedBy User    @relation(fields: [reportedById], references: [id])
+  school     School? @relation(fields: [schoolId], references: [id])
+
+  @@index([status])
+  @@index([schoolId])
+  @@map("support_tickets")
 }

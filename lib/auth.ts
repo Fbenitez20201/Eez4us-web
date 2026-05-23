@@ -20,6 +20,7 @@ export const auth = betterAuth({
         defaultValue: 'parent',
         input: false,
       },
+      phoneE164: { type: 'string', required: false },
     },
   },
   plugins: [
