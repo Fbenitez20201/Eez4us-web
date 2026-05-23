@@ -1,4 +1,4 @@
-import { md5 } from '@noble/hashes/md5';
+import { md5 } from '@noble/hashes/legacy';
 import { bytesToHex } from '@noble/hashes/utils';
 
 const pusherHost = (cluster: string) => `api-${cluster}.pusher.com`;

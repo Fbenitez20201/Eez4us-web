@@ -21,6 +21,13 @@ binding = "ASSETS"
 PUSHER_CLUSTER = "mt1"
 NODE_ENV = "production"
 
+# KV namespace para cachear Directions API (60s TTL).
+# Crear con: wrangler kv namespace create CACHE
+# y pegar el id devuelto.
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
 # WASM del query engine de Prisma (motor edge)
 [[rules]]
 type = "CompiledWasm"

@@ -1,6 +1,6 @@
 import { prismaAdapter } from '@better-auth/prisma-adapter';
 import { betterAuth } from 'better-auth';
-import { jwt } from 'better-auth/plugins';
+import { bearer, jwt } from 'better-auth/plugins';
 
 import { prisma } from './db';
 
@@ -24,6 +24,7 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    bearer(),
     jwt({
       jwt: {
         definePayload: ({ user }) => ({

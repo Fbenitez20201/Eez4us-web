@@ -1,7 +1,10 @@
 import { encodeBase64 } from 'tweetnacl-util';
 
-import { auth } from '@/lib/auth';
+import { canAccessChannel } from '@/lib/pusher-channels';
 import { deriveChannelKey, readEncryptionMasterKey } from '@/lib/pusher-encrypt';
+import { getSessionFromRequest } from '@/lib/session';
+
+export const runtime = 'edge';
 
 async function hmacSHA256Hex(key: string, data: string): Promise<string> {
   const enc = new TextEncoder();
@@ -19,7 +22,7 @@ async function hmacSHA256Hex(key: string, data: string): Promise<string> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  const session = await auth.api.getSession({ headers: req.headers });
+  const session = await getSessionFromRequest(req);
   if (!session) {
     return new Response('Unauthorized', { status: 401 });
   }
@@ -30,6 +33,11 @@ export async function POST(req: Request): Promise<Response> {
 
   if (typeof socketId !== 'string' || typeof channelName !== 'string') {
     return new Response('Bad Request', { status: 400 });
+  }
+
+  const allowed = await canAccessChannel(channelName, session);
+  if (!allowed) {
+    return new Response('Forbidden', { status: 403 });
   }
 
   const authSig = await hmacSHA256Hex(process.env.PUSHER_SECRET!, `${socketId}:${channelName}`);

@@ -8,7 +8,7 @@ export async function deriveChannelKey(
   const enc = new TextEncoder();
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
-    masterKey,
+    masterKey as BufferSource,
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign'],
