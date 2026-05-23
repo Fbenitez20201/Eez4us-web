@@ -1,4 +1,4 @@
-name = "ez4us-web"
+name = "eez4us-web"
 main = ".open-next/worker.js"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]

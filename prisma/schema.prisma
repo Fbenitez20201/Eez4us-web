@@ -69,7 +69,7 @@ model Verification {
   @@map("verifications")
 }
 
-// ------ EZ4us core (placeholder; expandir cuando llegue la presentación) ------
+// ------ Eez4us core (placeholder; expandir cuando llegue la presentación) ------
 
 model School {
   id        String   @id @default(cuid())

@@ -39,7 +39,7 @@ export default function LoginPage() {
         className="w-full max-w-sm space-y-6 rounded-3xl border bg-card p-8 shadow-sm"
       >
         <div className="space-y-1 text-center">
-          <h1 className="text-3xl font-black text-primary">EZ4us</h1>
+          <h1 className="text-3xl font-black text-primary">Eez4us</h1>
           <p className="text-sm text-muted-foreground">Panel administrativo</p>
         </div>
 

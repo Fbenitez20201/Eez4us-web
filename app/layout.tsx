@@ -10,8 +10,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: 'EZ4us Admin',
-  description: 'Panel administrativo EZ4us',
+  title: 'Eez4us Admin',
+  description: 'Panel administrativo Eez4us',
   robots: { index: false, follow: false },
 };
 

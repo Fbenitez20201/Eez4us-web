@@ -1,4 +1,4 @@
-# EZ4us — Reglas duras del proyecto
+# Eez4us — Reglas duras del proyecto
 
 Sistema de coordinación de recogida vehicular en zonas escolares.
 Padre (mobile) presiona "voy en camino", colegio ve el ETA en tiempo real,
@@ -8,7 +8,7 @@ geofence dispara "Llegué" automático al entrar al colegio.
 
 Definido por el team leader en `eez4us-web-arquitecture.md` + decisiones del producto. **Las decisiones de stack abajo son ley.**
 
-- **Dos repos separados** (NO monorepo): `ez4us-web` y `ez4us-mobile`
+- **Dos repos separados** (NO monorepo): `eez4us-web` y `eez4us-mobile`
 - **Web admin**: Next 15 App Router + **OpenNext en Cloudflare Workers** + Tailwind + shadcn/ui
 - **Mobile**: Expo SDK 54 + expo-router + NativeWind v4 + Nunito
 - **DB**: Prisma + **Prisma Postgres** + **Accelerate** (NO Neon)
@@ -28,7 +28,7 @@ Definido por el team leader en `eez4us-web-arquitecture.md` + decisiones del pro
 - Tres tipos de usuario:
   - **Padre** (mobile)
   - **Director** (web admin)
-  - **Super-Admin EZ4us** (web admin)
+  - **Super-Admin Eez4us** (web admin)
 - v2 no se toca ahora: "Niños con celular".
 
 ## Estética
@@ -98,7 +98,7 @@ Nunca commitear el `.env`. Cambios de credenciales solo con permiso explícito.
 - Contadores en hot path: campo denormalizado, no `count()` de la tabla.
 - **Workers-specific**: nunca `export const runtime = 'nodejs'` en routes. Nunca `node:crypto`, `node:fs`, `node:net`. Solo `crypto.subtle`, `fetch`, Web APIs.
 
-## Reglas específicas de EZ4us
+## Reglas específicas de Eez4us
 
 - **Multi-tenant por `schoolId` en TODAS las queries, sin excepción.**
   Query sin filtro de `schoolId` que devuelva data de otro colegio = bug
