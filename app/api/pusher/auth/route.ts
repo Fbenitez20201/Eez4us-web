@@ -4,8 +4,6 @@ import { canAccessChannel } from '@/lib/pusher-channels';
 import { deriveChannelKey, readEncryptionMasterKey } from '@/lib/pusher-encrypt';
 import { getSessionFromRequest } from '@/lib/session';
 
-export const runtime = 'edge';
-
 async function hmacSHA256Hex(key: string, data: string): Promise<string> {
   const enc = new TextEncoder();
   const cryptoKey = await crypto.subtle.importKey(

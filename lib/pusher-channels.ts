@@ -1,6 +1,7 @@
 import { prisma } from './db';
 import { encryptForChannel, readEncryptionMasterKey } from './pusher-encrypt';
 import { pusherTrigger, readPusherEnv } from './pusher-server';
+import { getPickupRoster } from './roster';
 import type { RankedTrip, TripUpdatePayload } from './trip-types';
 
 export type { RankedTrip, TripUpdatePayload } from './trip-types';
@@ -14,6 +15,9 @@ export function tripChannel(tripId: string): string {
 }
 
 const STAFF_ROLES = new Set(['director', 'support_staff', 'super_admin']);
+// El canal del portón (pickup) lo opera además la "miss" (role logistics) desde el
+// mobile. Solo ese canal — alerts y trip siguen siendo staff puro.
+const PICKUP_CHANNEL_ROLES = new Set([...STAFF_ROLES, 'logistics']);
 
 export interface AuthorizedSession {
   user: {
@@ -34,7 +38,7 @@ export async function canAccessChannel(
   const schoolMatch = channelName.match(/^private-encrypted-school-([^-]+)-pickup-([^-]+)$/);
   if (schoolMatch) {
     const [, schoolId] = schoolMatch;
-    if (!STAFF_ROLES.has(session.user.role ?? '')) return false;
+    if (!PICKUP_CHANNEL_ROLES.has(session.user.role ?? '')) return false;
     return session.user.schoolId === schoolId;
   }
 
@@ -88,6 +92,7 @@ export async function buildRankedTrips(schoolId: string, pickupPointId: string):
       parent: { select: { id: true, name: true } },
       vehicle: { select: { plate: true, model: true, color: true } },
       tripStudents: {
+        where: { deliveredAt: null }, // entregados ya no figuran en el ranking de la TV
         include: { student: { select: { id: true, firstName: true, lastName: true } } },
       },
     },
@@ -99,6 +104,7 @@ export async function buildRankedTrips(schoolId: string, pickupPointId: string):
     parentId: t.parentId,
     parentName: t.parent.name,
     vehicle: t.vehicle,
+    isWalkup: t.isWalkup,
     students: t.tripStudents.map((ts) => ts.student),
     status: t.status,
     etaSeconds: t.etaSeconds,
@@ -109,9 +115,29 @@ export async function buildRankedTrips(schoolId: string, pickupPointId: string):
   }));
 }
 
+// Empuja SOLO la lista del portón (evento `roster.update`, payload { entries }) al canal
+// canónico del pickup. El mobile de la "miss" la escucha para refrescar el semáforo + ETA
+// sin pull-to-refresh (decrypt NaCl manual con el shared_secret de /pusher/auth).
+export async function broadcastRoster(schoolId: string, pickupPointId: string): Promise<void> {
+  const entries = await getPickupRoster(schoolId, pickupPointId);
+  await publish(schoolPickupChannel(schoolId, pickupPointId), 'roster.update', { entries });
+}
+
+// TV staff y portón mobile COMPARTEN el mismo canal canónico
+// (private-encrypted-school-{schoolId}-pickup-{pickupPointId}, ley en CLAUDE.md). Una sola
+// función alimenta las dos vistas con los mismos triggers, así nunca se desincronizan:
+//   - TV staff:    evento `trips.ranked`  payload { trips }   (ranked por ETA)
+//   - Portón miss: evento `roster.update` payload { entries }  (lista completa)
 export async function broadcastRankedTrips(schoolId: string, pickupPointId: string): Promise<void> {
-  const ranked = await buildRankedTrips(schoolId, pickupPointId);
-  await publish(schoolPickupChannel(schoolId, pickupPointId), 'trips.ranked', { trips: ranked });
+  const channel = schoolPickupChannel(schoolId, pickupPointId);
+  const [ranked, entries] = await Promise.all([
+    buildRankedTrips(schoolId, pickupPointId),
+    getPickupRoster(schoolId, pickupPointId),
+  ]);
+  await Promise.all([
+    publish(channel, 'trips.ranked', { trips: ranked }),
+    publish(channel, 'roster.update', { entries }),
+  ]);
 }
 
 export async function broadcastTripUpdate(tripId: string): Promise<void> {
