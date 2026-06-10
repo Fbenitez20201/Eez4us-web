@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { cn } from '@/lib/utils';
+
 interface TripETAProps {
   etaSeconds: number | null;
   etaUpdatedAt: string | null;
@@ -10,11 +12,9 @@ interface TripETAProps {
 function format(remaining: number): { text: string; arriving: boolean } {
   if (remaining <= 30) return { text: 'Llegando', arriving: true };
   const total = Math.floor(remaining);
-  const mm = Math.floor(total / 60)
-    .toString()
-    .padStart(2, '0');
+  const mins = Math.floor(total / 60);
   const ss = (total % 60).toString().padStart(2, '0');
-  return { text: `${mm}:${ss}`, arriving: false };
+  return { text: `${mins}:${ss}`, arriving: false };
 }
 
 export function TripETA({ etaSeconds, etaUpdatedAt }: TripETAProps) {
@@ -26,7 +26,11 @@ export function TripETA({ etaSeconds, etaUpdatedAt }: TripETAProps) {
   }, []);
 
   if (etaSeconds == null || etaUpdatedAt == null) {
-    return <p className="text-4xl font-black tabular-nums text-muted-foreground">—:—</p>;
+    return (
+      <span className="inline-flex items-center rounded-md border bg-muted px-2.5 py-1 text-sm font-bold tabular-nums text-muted-foreground">
+        —
+      </span>
+    );
   }
 
   const updatedAtMs = new Date(etaUpdatedAt).getTime();
@@ -35,13 +39,15 @@ export function TripETA({ etaSeconds, etaUpdatedAt }: TripETAProps) {
   const { text, arriving } = format(remaining);
 
   return (
-    <p
-      className={
-        'text-4xl font-black tabular-nums ' +
-        (arriving ? 'text-amber-600' : 'text-foreground')
-      }
+    <span
+      className={cn(
+        'inline-flex items-center rounded-md border px-2.5 py-1 text-sm font-bold tabular-nums',
+        arriving
+          ? 'bg-amber-100 text-amber-900 border-amber-300'
+          : 'bg-secondary text-foreground border-border',
+      )}
     >
       {text}
-    </p>
+    </span>
   );
 }

@@ -30,10 +30,12 @@ const STATUS_VARIANTS: Record<InvitationStatus, BadgeProps['variant']> = {
   REVOKED: 'destructive',
 };
 
+// "Estado" habla del ENVÍO; el registro del padre en la app va aparte (columna Registro).
+// Pendiente de envío ≠ enviada ≠ enviada y registrada.
 const STATUS_LABELS: Record<InvitationStatus, string> = {
-  PENDING: 'Pendiente',
+  PENDING: 'Pendiente de envío',
   SENT: 'Enviada',
-  CLAIMED: 'Reclamada',
+  CLAIMED: 'Enviada',
   EXPIRED: 'Expirada',
   REVOKED: 'Revocada',
 };
@@ -46,6 +48,7 @@ interface InvitationRow {
   recipientName: string | null;
   studentNames: string[];
   createdAt: string;
+  claimedAt: string | null;
   expiresAt: string;
   resendable: boolean;
 }
@@ -69,7 +72,7 @@ export default async function InvitationsPage({
     ...(statusFilter ? { status: statusFilter } : {}),
   };
 
-  const [total, invitations] = await Promise.all([
+  const [total, invitations, byStatus] = await Promise.all([
     prisma.invitation.count({ where }),
     prisma.invitation.findMany({
       where,
@@ -84,10 +87,23 @@ export default async function InvitationsPage({
         recipientName: true,
         studentIds: true,
         createdAt: true,
+        claimedAt: true,
         expiresAt: true,
       },
     }),
+    prisma.invitation.groupBy({
+      by: ['status'],
+      where: { schoolId },
+      _count: { _all: true },
+    }),
   ]);
+
+  const countOf = (s: InvitationStatus) =>
+    byStatus.find((b) => b.status === s)?._count._all ?? 0;
+  const registered = countOf('CLAIMED');
+  // Enviadas (o vencidas) cuyo padre todavía no confirmó su registro en la app
+  const awaitingRegistration = countOf('SENT') + countOf('EXPIRED');
+  const pendingSend = countOf('PENDING');
 
   const studentIds = [...new Set(invitations.flatMap((i) => i.studentIds))];
   const students = studentIds.length
@@ -106,6 +122,7 @@ export default async function InvitationsPage({
     recipientName: i.recipientName,
     studentNames: i.studentIds.map((sid) => studentMap.get(sid) ?? sid),
     createdAt: i.createdAt.toISOString(),
+    claimedAt: i.claimedAt?.toISOString() ?? null,
     expiresAt: i.expiresAt.toISOString(),
     resendable: i.status !== 'CLAIMED' && i.status !== 'REVOKED',
   }));
@@ -144,10 +161,29 @@ export default async function InvitationsPage({
     },
     {
       key: 'status',
-      header: 'Estado',
+      header: 'Envío',
       cell: (r) => (
         <Badge variant={STATUS_VARIANTS[r.status]}>{STATUS_LABELS[r.status]}</Badge>
       ),
+    },
+    {
+      key: 'registration',
+      header: 'Registro',
+      cell: (r) =>
+        r.status === 'CLAIMED' ? (
+          <div>
+            <Badge variant="success">Registrado</Badge>
+            {r.claimedAt && (
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                {new Date(r.claimedAt).toLocaleDateString('es')}
+              </p>
+            )}
+          </div>
+        ) : r.status === 'REVOKED' ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
+          <Badge variant="warning">Pendiente</Badge>
+        ),
     },
     {
       key: 'date',
@@ -173,6 +209,31 @@ export default async function InvitationsPage({
         <h1 className="text-3xl font-black">Invitaciones</h1>
         <p className="text-sm text-muted-foreground">{total} en total.</p>
       </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <p className="text-xs font-bold uppercase text-muted-foreground">Registrados en la app</p>
+          <p className="text-3xl font-black text-emerald-600">{registered}</p>
+        </div>
+        <Link
+          href="/admin/invitations?status=SENT"
+          className="rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary"
+        >
+          <p className="text-xs font-bold uppercase text-muted-foreground">
+            Falta confirmar registro
+          </p>
+          <p className="text-3xl font-black text-amber-600">{awaitingRegistration}</p>
+          <p className="text-xs text-muted-foreground">Invitados que aún no entraron a la app</p>
+        </Link>
+        <Link
+          href="/admin/invitations?status=PENDING"
+          className="rounded-2xl border bg-card p-4 shadow-sm transition hover:border-primary"
+        >
+          <p className="text-xs font-bold uppercase text-muted-foreground">Pendientes de envío</p>
+          <p className="text-3xl font-black">{pendingSend}</p>
+        </Link>
+      </div>
+
       <InvitationsFilters />
       <DataTable
         rows={rows}

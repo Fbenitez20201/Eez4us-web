@@ -1,7 +1,5 @@
 import { runAllAlertChecks } from '@/lib/alerts';
 
-export const runtime = 'edge';
-
 function unauthorized(): Response {
   return Response.json({ error: 'UNAUTHORIZED' }, { status: 401 });
 }

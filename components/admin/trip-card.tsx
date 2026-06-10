@@ -23,48 +23,61 @@ export function TripCard({ trip, rank, role, onRemove }: TripCardProps) {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 rounded-3xl border bg-card p-5 shadow-md transition-shadow hover:shadow-lg',
-        inZone && 'animate-pulse border-amber-400',
+        'flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors',
+        inZone ? 'border-amber-300 bg-amber-50/40' : 'hover:bg-secondary/40',
       )}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="text-2xl font-black text-primary">#{rank}</span>
-          <div>
-            <p className="text-lg font-bold leading-tight">
-              {trip.parentName ?? 'Padre sin nombre'}
-            </p>
-            <div className="mt-1 flex items-center gap-2">
+      {/* Rank */}
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-base font-bold text-foreground/70">
+        {rank}
+      </div>
+
+      {/* ETA */}
+      <div className="shrink-0">
+        <TripETA etaSeconds={trip.etaSeconds} etaUpdatedAt={trip.etaUpdatedAt} />
+      </div>
+
+      {/* Parent + vehicle */}
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold leading-tight truncate">
+          {trip.parentName ?? 'Padre sin nombre'}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+          {trip.vehicle ? (
+            <>
               <span
-                className="inline-flex h-5 w-5 shrink-0 rounded-full border border-border"
+                className="inline-flex h-3 w-3 shrink-0 rounded-full border border-border"
                 style={{ backgroundColor: trip.vehicle.color }}
                 title={trip.vehicle.color}
                 aria-hidden
               />
-              <span className="font-mono text-sm font-bold tracking-wide">
+              <span className="font-mono font-semibold tracking-wide text-foreground">
                 {trip.vehicle.plate}
               </span>
-              <span className="text-xs text-muted-foreground">{trip.vehicle.model}</span>
-            </div>
-          </div>
-        </div>
-        <div className="text-right">
-          <TripETA etaSeconds={trip.etaSeconds} etaUpdatedAt={trip.etaUpdatedAt} />
+              <span>{trip.vehicle.model}</span>
+            </>
+          ) : (
+            <span className="font-medium text-foreground/70">
+              {trip.origin === 'ESTOY_AFUERA' ? 'Padre afuera · sin GPS' : 'Retiro en puerta · a pie'}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      {/* Students */}
+      <div className="hidden sm:flex flex-wrap items-center gap-1 max-w-[200px]">
         {trip.students.map((s) => (
           <span
             key={s.id}
-            className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-bold"
+            className="inline-flex rounded-md bg-secondary px-2 py-0.5 text-xs font-medium"
           >
             {s.firstName} {s.lastName}
           </span>
         ))}
       </div>
 
-      <div className="flex items-center justify-between gap-3">
+      {/* Status + action */}
+      <div className="flex items-center gap-3 shrink-0">
         <StatusBadge status={trip.status} />
         {canFinalize && (
           <FinalizeButton

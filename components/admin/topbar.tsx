@@ -1,16 +1,24 @@
 'use client';
 
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu, PanelLeft, PanelLeftClose, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 interface TopbarProps {
   schoolName: string | null;
   internalCode: string | null;
+  collapsed: boolean;
   onMenuClick: () => void;
+  onToggleCollapse: () => void;
 }
 
-export function Topbar({ schoolName, internalCode, onMenuClick }: TopbarProps) {
+export function Topbar({
+  schoolName,
+  internalCode,
+  collapsed,
+  onMenuClick,
+  onToggleCollapse,
+}: TopbarProps) {
   const [unread, setUnread] = useState(0);
 
   useEffect(() => {
@@ -42,6 +50,14 @@ export function Topbar({ schoolName, internalCode, onMenuClick }: TopbarProps) {
         aria-label="Abrir menú"
       >
         <Menu className="h-5 w-5" />
+      </button>
+      <button
+        type="button"
+        onClick={onToggleCollapse}
+        className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-card transition-colors hover:bg-secondary lg:inline-flex"
+        aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+      >
+        {collapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
       </button>
       <div className="min-w-0">
         <p className="text-sm font-bold leading-tight text-foreground truncate">

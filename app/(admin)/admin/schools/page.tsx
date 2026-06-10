@@ -83,12 +83,23 @@ export default async function SchoolsAdminPage() {
             <p className="text-sm text-muted-foreground">No hay colegios cargados.</p>
           ) : (
             <ul className="divide-y text-sm">
-              {schools.map((s) => (
+              {schools.map((s) => {
+                const monthlyRevenue =
+                  s.subscription && ['ACTIVE', 'PAST_DUE'].includes(s.subscription.status)
+                    ? s._count.students * s.subscription.pricePerStudent
+                    : 0;
+                const location = [s.city, s.country].filter(Boolean).join(', ');
+                return (
                 <li key={s.id} className="py-3">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-bold">
                         {s.name}{' '}
+                        {location && (
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            {location}
+                          </span>
+                        )}
                         {!s.active && (
                           <span className="ml-2 rounded-full bg-destructive/20 px-2 py-0.5 text-xs font-bold text-destructive">
                             Suspendido
@@ -99,7 +110,10 @@ export default async function SchoolsAdminPage() {
                         Código <code>{s.internalCode}</code> ·{' '}
                         {s._count.students} alumnos · {s._count.users} usuarios ·{' '}
                         {s._count.trips} viajes ·{' '}
-                        {s.subscription?.status ?? 'sin suscripción'}
+                        {s.subscription?.status ?? 'sin suscripción'} ·{' '}
+                        <span className="font-bold text-emerald-700">
+                          ${monthlyRevenue.toLocaleString('en-US')} /mes
+                        </span>
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -119,7 +133,8 @@ export default async function SchoolsAdminPage() {
                     </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </CardContent>

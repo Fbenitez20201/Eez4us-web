@@ -30,6 +30,11 @@ export default async function NewStudentPage() {
           gradeId: null,
           externalId: null,
           birthDate: null,
+          pickupMode: 'PRIVATE_VEHICLE',
+          transportName: null,
+          transportPlate: null,
+          transportPhone: null,
+          transportVehicleType: null,
         }}
       />
     </div>

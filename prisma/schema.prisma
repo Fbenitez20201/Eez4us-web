@@ -137,6 +137,8 @@ model School {
   addressText  String?
   addressLat   Float?
   addressLng   Float?
+  city         String?
+  country      String? // ISO o nombre legible; alimenta presencia global del super-admin
 
   // branding del colegio (login + admin)
   logoUrl           String?
@@ -354,6 +356,16 @@ enum TripStatus {
   CANCELADO
 }
 
+// Cómo arrancó la recogida:
+// EN_CAMINO    = padre con "voy en camino" (GPS + ETA)
+// ESTOY_AFUERA = padre ya en la puerta, sin GPS (botón "Estoy afuera")
+// WALKUP       = viaje sintético creado por la miss al escanear sin recogida activa
+enum TripOrigin {
+  EN_CAMINO
+  ESTOY_AFUERA
+  WALKUP
+}
+
 enum TripEventType {
   STARTED
   POSITION_UPDATE
@@ -375,6 +387,8 @@ model Trip {
   // Viaje sintético creado por la miss al escanear una tarjeta sin recogida en curso
   // (§A7-ter, walk-up puro). Se excluye de los flujos del padre; vive solo para el portón.
   isWalkup Boolean @default(false)
+
+  origin TripOrigin @default(EN_CAMINO)
 
   status            TripStatus @default(EN_CAMINO)
   startedAt         DateTime   @default(now())
@@ -455,6 +469,9 @@ model Vendor {
   id            String   @id @default(cuid())
   userId        String   @unique
   commissionPct Float    @default(0.10)
+  // duración de la comisión en periodos de pago mensuales (ej: 10% por 3 meses);
+  // null = sin límite
+  commissionMonths Int?
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
 

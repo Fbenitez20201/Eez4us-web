@@ -1,5 +1,6 @@
 name = "eez4us-web"
 main = "worker-entry.mjs"
+account_id = "3531a4c03f7e5c47c6d4dcb7ca7a9733"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat"]
 
@@ -32,7 +33,7 @@ NODE_ENV = "production"
 # y pegar el id devuelto.
 [[kv_namespaces]]
 binding = "CACHE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "0c210a46479649679d85965dde07dc07"
 
 # WASM del query engine de Prisma (motor edge)
 [[rules]]

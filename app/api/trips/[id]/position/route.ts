@@ -6,8 +6,6 @@ import { sendPushToUser } from '@/lib/push';
 import { broadcastRankedTrips, broadcastTripUpdate } from '@/lib/pusher-channels';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const bodySchema = z.object({
   lat: z.number().min(-90).max(90),
   lng: z.number().min(-180).max(180),

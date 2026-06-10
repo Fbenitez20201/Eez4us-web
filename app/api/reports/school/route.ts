@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 function dayKey(d: Date): string {

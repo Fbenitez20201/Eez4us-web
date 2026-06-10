@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { SupportBoard } from '@/components/admin/support-board';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export default async function SupportPage() {
   const session = await getCurrentSession();
   if (!session) redirect('/login');

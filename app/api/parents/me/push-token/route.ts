@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const upsertSchema = z.object({
   expoPushToken: z.string().trim().min(10).max(200),
   platform: z.enum(['ios', 'android']),

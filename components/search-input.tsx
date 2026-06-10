@@ -36,7 +36,6 @@ export function SearchInput({
       router.replace(`?${params.toString()}`, { scroll: false });
     }, debounceMs);
     return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, paramName, debounceMs]);
 
   return (

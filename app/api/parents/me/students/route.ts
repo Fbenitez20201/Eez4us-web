@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export async function GET(req: Request): Promise<Response> {
   try {
     const session = await requireRole(req, ['parent']);
@@ -16,6 +14,11 @@ export async function GET(req: Request): Promise<Response> {
             firstName: true,
             lastName: true,
             grade: { select: { id: true, name: true } },
+            pickupMode: true,
+            transportName: true,
+            transportPlate: true,
+            transportPhone: true,
+            transportVehicleType: true,
           },
         },
       },
@@ -26,6 +29,16 @@ export async function GET(req: Request): Promise<Response> {
         firstName: l.student.firstName,
         lastName: l.student.lastName,
         grade: l.student.grade,
+        pickupMode: l.student.pickupMode,
+        transport:
+          l.student.pickupMode === 'TRANSPORT'
+            ? {
+                name: l.student.transportName,
+                plate: l.student.transportPlate,
+                phone: l.student.transportPhone,
+                vehicleType: l.student.transportVehicleType,
+              }
+            : null,
       })),
     });
   } catch (err) {

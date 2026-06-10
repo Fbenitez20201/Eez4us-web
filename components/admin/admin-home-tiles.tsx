@@ -1,49 +1,72 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { ArrowUpRight, GraduationCap, Mailbox, Navigation } from 'lucide-react';
 import Link from 'next/link';
 
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+type TileIcon = 'students' | 'invitations' | 'trips';
+
+const ICONS: Record<TileIcon, typeof GraduationCap> = {
+  students: GraduationCap,
+  invitations: Mailbox,
+  trips: Navigation,
+};
 
 interface Tile {
   label: string;
   value: number;
   href: string;
+  hint?: string;
+  icon?: TileIcon;
 }
 
 interface AdminHomeTilesProps {
   tiles: Tile[];
 }
 
-const container = {
-  show: { transition: { staggerChildren: 0.06 } },
-};
-
-const item = {
-  hidden: { opacity: 0, y: 8 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' as const } },
-};
-
 export function AdminHomeTiles({ tiles }: AdminHomeTilesProps) {
   return (
-    <motion.div
-      initial="hidden"
-      animate="show"
-      variants={container}
-      className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-    >
-      {tiles.map((t) => (
-        <motion.div key={t.label} variants={item}>
-          <Link href={t.href}>
-            <Card className="transition-transform hover:-translate-y-0.5 hover:shadow-lg">
-              <CardHeader>
-                <CardDescription>{t.label}</CardDescription>
-                <CardTitle className="text-4xl text-primary">{t.value}</CardTitle>
-              </CardHeader>
-            </Card>
+    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {tiles.map((t) => {
+        const Icon = t.icon ? ICONS[t.icon] : null;
+        return (
+          <Link
+            key={t.label}
+            href={t.href}
+            className="group block overflow-hidden rounded-xl border-[1.5px] border-border bg-card shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-[hsl(var(--brand-accent))] hover:shadow-elev"
+          >
+            {/* Banda de color de acento */}
+            <div
+              className="flex items-center justify-between px-5 py-3"
+              style={{ background: 'hsl(var(--brand-accent) / 0.12)' }}
+            >
+              {Icon && (
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border bg-card"
+                  style={{
+                    borderColor: 'hsl(var(--brand-accent) / 0.45)',
+                    color: 'hsl(var(--brand-accent))',
+                  }}
+                >
+                  <Icon className="h-5 w-5" />
+                </span>
+              )}
+              <ArrowUpRight
+                className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                style={{ color: 'hsl(var(--brand-accent))' }}
+              />
+            </div>
+
+            {/* Cuerpo */}
+            <div className="px-5 pb-5 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                {t.label}
+              </p>
+              <p className="mt-2 text-3xl font-bold tabular-nums">{t.value}</p>
+              {t.hint && <p className="mt-1 text-xs text-muted-foreground">{t.hint}</p>}
+            </div>
           </Link>
-        </motion.div>
-      ))}
-    </motion.div>
+        );
+      })}
+    </div>
   );
 }

@@ -6,6 +6,9 @@ const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      screens: {
+        '3xl': '1920px',
+      },
       fontFamily: {
         sans: ['Nunito', 'system-ui', 'sans-serif'],
       },

@@ -3,8 +3,8 @@ import { z } from 'zod';
 import { onStudentActivationChanged, onStudentDeactivated } from '@/lib/billing-hooks';
 import { prisma } from '@/lib/db';
 import { jsonError, requireSchool } from '@/lib/session';
-
-export const runtime = 'edge';
+import type { NormalizedPickup } from '@/lib/student-pickup';
+import { normalizePickup, pickupFields } from '@/lib/student-pickup';
 
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
@@ -20,6 +20,7 @@ const patchSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => null)),
   active: z.boolean().optional(),
+  ...pickupFields,
 });
 
 async function loadStudent(schoolId: string, studentId: string) {
@@ -63,6 +64,15 @@ export async function PATCH(
       }
     }
 
+    let pickup: NormalizedPickup | undefined;
+    if (body.pickupMode !== undefined) {
+      const r = normalizePickup(body, body.pickupMode);
+      if (!r.ok) {
+        return Response.json({ error: r.error }, { status: 400 });
+      }
+      pickup = r.value;
+    }
+
     const student = await prisma.student.update({
       where: { id: studentId },
       data: {
@@ -72,6 +82,7 @@ export async function PATCH(
         externalId: body.externalId,
         birthDate: body.birthDate ? new Date(body.birthDate) : body.birthDate,
         active: body.active,
+        ...(pickup ?? {}),
       },
       select: {
         id: true,

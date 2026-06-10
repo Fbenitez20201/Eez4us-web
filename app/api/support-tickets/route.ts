@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const createSchema = z.object({
   type: z.enum(['BUG', 'IMPROVEMENT', 'SUPPORT']),
   title: z.string().trim().min(3).max(140),

@@ -18,8 +18,16 @@ interface OperationalData {
   tripsThisMonth: number;
   deliveredPct: number;
   canceledPct: number;
+  avgPickupMinutes: number | null;
+  avgOutsideWaitMinutes: number | null;
+  mobileUsers: { withApp: number; total: number };
+  outsideUsage: { parents: number; trips: number };
   tripsPerDay: Array<{ day: string; count: number }>;
   breakdown: Array<{ schoolId: string; schoolName: string; trips: number }>;
+}
+
+function minutesLabel(v: number | null): string {
+  return v == null ? '—' : `${v} min`;
 }
 
 export function OperationalReport({ isSuper }: { isSuper: boolean }) {
@@ -70,6 +78,44 @@ export function OperationalReport({ isSuper }: { isSuper: boolean }) {
           <CardHeader>
             <CardDescription>% cancelados</CardDescription>
             <CardTitle className="text-4xl text-destructive">{data.canceledPct}%</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardDescription>Duración promedio de recogida</CardDescription>
+            <CardTitle className="text-4xl text-primary">
+              {minutesLabel(data.avgPickupMinutes)}
+            </CardTitle>
+            <CardDescription>“Voy en camino” → entrega, este mes</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardDescription>Espera promedio afuera</CardDescription>
+            <CardTitle className="text-4xl text-primary">
+              {minutesLabel(data.avgOutsideWaitMinutes)}
+            </CardTitle>
+            <CardDescription>“Estoy afuera” (sin GPS) → entrega</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardDescription>Padres con la app móvil</CardDescription>
+            <CardTitle className="text-4xl text-primary">
+              {data.mobileUsers.withApp}
+              <span className="text-xl text-muted-foreground"> / {data.mobileUsers.total}</span>
+            </CardTitle>
+            <CardDescription>Con dispositivo registrado</CardDescription>
+          </CardHeader>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardDescription>Usan “Estoy afuera”</CardDescription>
+            <CardTitle className="text-4xl text-primary">{data.outsideUsage.parents}</CardTitle>
+            <CardDescription>{data.outsideUsage.trips} usos este mes</CardDescription>
           </CardHeader>
         </Card>
       </div>

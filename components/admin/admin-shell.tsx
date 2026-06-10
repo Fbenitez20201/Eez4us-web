@@ -15,6 +15,8 @@ interface AdminShellProps {
   children: React.ReactNode;
 }
 
+const COLLAPSE_KEY = 'eez4us.sidebarCollapsed';
+
 export function AdminShell({
   userName,
   role,
@@ -25,11 +27,17 @@ export function AdminShell({
 }: AdminShellProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   // Cerrar el drawer al navegar
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
+
+  // Recordar el estado colapsado del sidebar (solo escritorio)
+  useEffect(() => {
+    if (localStorage.getItem(COLLAPSE_KEY) === '1') setCollapsed(true);
+  }, []);
 
   // Escape cierra el drawer
   useEffect(() => {
@@ -41,6 +49,14 @@ export function AdminShell({
     return () => document.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
 
+  function toggleCollapsed() {
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0');
+      return next;
+    });
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       <Sidebar
@@ -49,13 +65,16 @@ export function AdminShell({
         schoolName={schoolName}
         schoolLogo={schoolLogo}
         open={drawerOpen}
+        collapsed={collapsed}
         onClose={() => setDrawerOpen(false)}
       />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Topbar
           schoolName={schoolName}
           internalCode={internalCode}
+          collapsed={collapsed}
           onMenuClick={() => setDrawerOpen(true)}
+          onToggleCollapse={toggleCollapsed}
         />
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-7xl 3xl:max-w-[110rem] shell-px shell-py">{children}</div>

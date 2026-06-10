@@ -1,7 +1,5 @@
 import { prisma } from '@/lib/db';
 
-export const runtime = 'edge';
-
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ token: string }> },

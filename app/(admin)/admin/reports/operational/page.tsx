@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { OperationalReport } from '@/components/admin/operational-report';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export default async function OperationalReportPage() {
   const session = await getCurrentSession();
   if (!session) redirect('/login');

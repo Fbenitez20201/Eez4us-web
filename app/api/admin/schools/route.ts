@@ -7,6 +7,8 @@ import { jsonError, requireRole } from '@/lib/session';
 const schema = z.object({
   name: z.string().trim().min(2).max(200),
   internalCode: z.string().trim().min(3).max(64),
+  city: z.string().trim().max(120).optional(),
+  country: z.string().trim().max(120).optional(),
   director: z.object({
     name: z.string().trim().min(2).max(120),
     email: z.string().email(),
@@ -43,7 +45,12 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const school = await prisma.school.create({
-      data: { name: body.name, internalCode: codeUpper },
+      data: {
+        name: body.name,
+        internalCode: codeUpper,
+        city: body.city || null,
+        country: body.country || null,
+      },
     });
 
     await auth.api.signUpEmail({

@@ -37,6 +37,11 @@ export default async function SchoolDetailPage({
   });
   if (!school) notFound();
 
+  const [parentsCount, vehiclesCount] = await Promise.all([
+    prisma.user.count({ where: { schoolId: id, role: 'parent', active: true } }),
+    prisma.vehicle.count({ where: { active: true, parent: { schoolId: id, role: 'parent' } } }),
+  ]);
+
   return (
     <div className="space-y-6">
       <Link href="/admin/schools" className="text-sm font-bold text-primary hover:underline">
@@ -48,14 +53,19 @@ export default async function SchoolDetailPage({
           <h1 className="text-3xl font-black">{school.name}</h1>
           <p className="text-sm text-muted-foreground">
             Código <code>{school.internalCode}</code>
+            {(school.city || school.country) && (
+              <> · {[school.city, school.country].filter(Boolean).join(', ')}</>
+            )}
           </p>
         </div>
         <SchoolActions schoolId={school.id} active={school.active} />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {[
           { l: 'Alumnos', v: school._count.students },
+          { l: 'Padres de familia', v: parentsCount },
+          { l: 'Vehículos registrados', v: vehiclesCount },
           { l: 'Viajes', v: school._count.trips },
           { l: 'Pickup points', v: school._count.pickupPoints },
           { l: 'Invitaciones', v: school._count.invitations },

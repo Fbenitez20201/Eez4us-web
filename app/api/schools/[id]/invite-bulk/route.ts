@@ -1,18 +1,9 @@
 import { prisma } from '@/lib/db';
 import { parseParentsExcel } from '@/lib/excel';
-import { createInvitation } from '@/lib/invitations';
-import { sendInvitationEmail } from '@/lib/mailer';
-import { sendWhatsAppInvitation } from '@/lib/n8n';
+import { createInvitation, pickChannel, sendInvitation } from '@/lib/invitations';
 import { jsonError, requireSchool } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
-
-function inviteLink(token: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? '';
-  return `${base.replace(/\/$/, '')}/invite/${token}`;
-}
 
 export async function POST(
   req: Request,
@@ -67,10 +58,15 @@ export async function POST(
         continue;
       }
 
-      const channel: 'EMAIL' | 'WHATSAPP' = p.email ? 'EMAIL' : 'WHATSAPP';
       const studentIds = matched.map((s) => s.id);
       const parentName = `${p.firstName} ${p.lastName}`.trim();
       const studentNames = matched.map((s) => `${s.firstName} ${s.lastName}`.trim());
+
+      const channel = pickChannel(p);
+      if (!channel) {
+        rowErrors.push({ parent: parentName, reason: 'sin email ni teléfono' });
+        continue;
+      }
 
       try {
         const invitation = await createInvitation({
@@ -96,29 +92,16 @@ export async function POST(
     }
 
     const sendResults = await Promise.allSettled(
-      created.map(async (c) => {
-        const link = inviteLink(c.token);
-        if (c.channel === 'EMAIL') {
-          await sendInvitationEmail({
-            email: c.contactValue,
-            link,
-            parentName: c.parentName,
-            studentNames: c.studentNames,
-          });
-        } else {
-          await sendWhatsAppInvitation({
-            phone: c.contactValue,
-            link,
-            parentName: c.parentName,
-            studentNames: c.studentNames,
-          });
-        }
-        await prisma.invitation.update({
-          where: { id: c.invitationId },
-          data: { status: 'SENT', sentAt: new Date() },
-        });
-        return c.invitationId;
-      }),
+      created.map((c) =>
+        sendInvitation({
+          invitationId: c.invitationId,
+          channel: c.channel,
+          contactValue: c.contactValue,
+          token: c.token,
+          parentName: c.parentName,
+          studentNames: c.studentNames,
+        }),
+      ),
     );
 
     const sendFailures = sendResults

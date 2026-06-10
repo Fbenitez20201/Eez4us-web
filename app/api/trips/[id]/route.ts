@@ -4,8 +4,6 @@ import { prisma } from '@/lib/db';
 import { broadcastRankedTrips, broadcastTripUpdate } from '@/lib/pusher-channels';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const bodySchema = z.object({
   status: z.literal('CANCELADO'),
 });

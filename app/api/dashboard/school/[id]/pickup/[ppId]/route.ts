@@ -2,8 +2,6 @@ import { prisma } from '@/lib/db';
 import { buildRankedTrips } from '@/lib/pusher-channels';
 import { jsonError, requireSchool } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'support_staff', 'super_admin'];
 
 export async function GET(

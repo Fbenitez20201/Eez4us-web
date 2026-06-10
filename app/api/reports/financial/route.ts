@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['super_admin'];
 
 export async function GET(req: Request): Promise<Response> {
@@ -17,7 +15,9 @@ export async function GET(req: Request): Promise<Response> {
             id: true,
             name: true,
             enrolledByVendors: {
-              include: { vendor: { select: { id: true, commissionPct: true } } },
+              include: {
+                vendor: { select: { id: true, commissionPct: true, commissionMonths: true } },
+              },
             },
             _count: { select: { students: { where: { active: true } } } },
           },
@@ -28,10 +28,15 @@ export async function GET(req: Request): Promise<Response> {
     const perSchool = subs.map((s) => {
       const quantity = s.school._count.students || 1;
       const revenue = quantity * s.pricePerStudent;
-      const commissions = s.school.enrolledByVendors.reduce(
-        (acc, vs) => acc + revenue * vs.vendor.commissionPct,
-        0,
-      );
+      // La comisión corre solo los primeros commissionMonths periodos desde el enroll
+      const commissions = s.school.enrolledByVendors.reduce((acc, vs) => {
+        if (vs.vendor.commissionMonths != null) {
+          const expires = new Date(vs.enrolledAt);
+          expires.setMonth(expires.getMonth() + vs.vendor.commissionMonths);
+          if (expires <= new Date()) return acc;
+        }
+        return acc + revenue * vs.vendor.commissionPct;
+      }, 0);
       return {
         schoolId: s.school.id,
         schoolName: s.school.name,

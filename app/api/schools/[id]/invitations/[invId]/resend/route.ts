@@ -1,21 +1,13 @@
 import { customAlphabet } from 'nanoid';
 
 import { prisma } from '@/lib/db';
-import { sendInvitationEmail } from '@/lib/mailer';
-import { sendWhatsAppInvitation } from '@/lib/n8n';
+import { dispatchInvitation, inviteLink } from '@/lib/invitations';
 import { jsonError, requireSchool } from '@/lib/session';
-
-export const runtime = 'edge';
 
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 const TOKEN_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const generateToken = customAlphabet(TOKEN_ALPHABET, 24);
-
-function inviteLink(token: string): string {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? '';
-  return `${base.replace(/\/$/, '')}/invite/${token}`;
-}
 
 export async function POST(
   req: Request,
@@ -49,21 +41,13 @@ export async function POST(
 
     const parentName = inv.recipientName ?? 'Padre/Madre';
 
-    if (inv.channel === 'EMAIL') {
-      await sendInvitationEmail({
-        email: inv.contactValue,
-        link: inviteLink(newToken),
-        parentName,
-        studentNames,
-      });
-    } else {
-      await sendWhatsAppInvitation({
-        phone: inv.contactValue,
-        link: inviteLink(newToken),
-        parentName,
-        studentNames,
-      });
-    }
+    await dispatchInvitation({
+      channel: inv.channel,
+      contactValue: inv.contactValue,
+      link: inviteLink(newToken),
+      parentName,
+      studentNames,
+    });
 
     const updated = await prisma.invitation.update({
       where: { id: invId },

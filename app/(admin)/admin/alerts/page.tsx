@@ -4,8 +4,6 @@ import { type AlertItem,AlertsBoard } from '@/components/admin/alerts-board';
 import { prisma } from '@/lib/db';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const STAFF_ROLES = new Set(['director', 'support_staff', 'super_admin']);
 
 export default async function AlertsPage() {

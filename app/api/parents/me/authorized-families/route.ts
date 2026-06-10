@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const createSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
   relationship: z.string().trim().min(1).max(60).optional(),

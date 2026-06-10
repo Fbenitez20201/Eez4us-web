@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const STAFF_ROLES = new Set(['director', 'support_staff', 'super_admin']);
 
 export async function POST(

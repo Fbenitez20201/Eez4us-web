@@ -44,3 +44,13 @@ prisma/generated/
 .eslintcache
 .cache/
 tsconfig.tsbuildinfo
+
+# Dev scratch
+devlog*.txt
+
+# Entregables / capturas (binarios pesados regenerables, fuera del repo)
+docs/
+
+# Claude Code local
+.claude/
+.captura/

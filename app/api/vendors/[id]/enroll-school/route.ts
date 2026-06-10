@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['super_admin'];
 
 const bodySchema = z.object({ schoolId: z.string().min(1) });

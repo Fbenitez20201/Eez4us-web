@@ -23,6 +23,7 @@ export function NewVendorForm({ candidateUsers }: { candidateUsers: User[] }) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [commissionPct, setCommissionPct] = useState('10');
+  const [commissionMonths, setCommissionMonths] = useState('3');
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -35,10 +36,16 @@ export function NewVendorForm({ candidateUsers }: { candidateUsers: User[] }) {
         setError('Comisión inválida');
         return;
       }
+      // vacío = sin límite de meses
+      const months = commissionMonths.trim() === '' ? null : Number(commissionMonths);
+      if (months !== null && (!Number.isInteger(months) || months < 1 || months > 60)) {
+        setError('Duración inválida (1 a 60 meses, o vacío para sin límite)');
+        return;
+      }
       const body =
         mode === 'existing'
-          ? { userId, commissionPct: pct }
-          : { email, name, commissionPct: pct };
+          ? { userId, commissionPct: pct, commissionMonths: months }
+          : { email, name, commissionPct: pct, commissionMonths: months };
       try {
         const res = await fetch('/api/vendors', {
           method: 'POST',
@@ -113,18 +120,37 @@ export function NewVendorForm({ candidateUsers }: { candidateUsers: User[] }) {
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="commission">Comisión (%)</Label>
-        <Input
-          id="commission"
-          type="number"
-          min="0"
-          max="100"
-          step="0.5"
-          value={commissionPct}
-          onChange={(e) => setCommissionPct(e.target.value)}
-          required
-        />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="commission">Comisión (%)</Label>
+          <Input
+            id="commission"
+            type="number"
+            min="0"
+            max="100"
+            step="0.5"
+            value={commissionPct}
+            onChange={(e) => setCommissionPct(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="commissionMonths">Duración (meses)</Label>
+          <Input
+            id="commissionMonths"
+            type="number"
+            min="1"
+            max="60"
+            step="1"
+            value={commissionMonths}
+            onChange={(e) => setCommissionMonths(e.target.value)}
+            placeholder="Vacío = sin límite"
+          />
+          <p className="text-xs text-muted-foreground">
+            Ej: 10% por 3 meses — la comisión se acumula en los siguientes {commissionMonths || 'N'}{' '}
+            periodos de pago de cada escuela enrolada.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -135,7 +161,7 @@ export function NewVendorForm({ candidateUsers }: { candidateUsers: User[] }) {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Creando…' : 'Crear vendor'}
+          {isPending ? 'Creando…' : 'Crear agente de venta'}
         </Button>
       </div>
     </form>

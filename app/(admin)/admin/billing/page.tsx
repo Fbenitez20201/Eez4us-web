@@ -6,8 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { prisma } from '@/lib/db';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const STATUS_BADGE: Record<
   string,
   { label: string; variant: 'default' | 'success' | 'warning' | 'destructive' | 'secondary' }
@@ -33,12 +31,30 @@ export default async function BillingPage() {
   if (!['director', 'super_admin'].includes(session.user.role)) redirect('/admin');
   const schoolId = session.user.schoolId;
 
-  const [sub, studentCount, school] = await Promise.all([
+  const [sub, studentCount, school, lastPaidInvoice, invoices] = await Promise.all([
     prisma.subscription.findUnique({ where: { schoolId } }),
     prisma.student.count({ where: { schoolId, active: true } }),
     prisma.school.findUnique({
       where: { id: schoolId },
       select: { name: true, stripeCustomerId: true },
+    }),
+    prisma.invoice.findFirst({
+      where: { schoolId, status: 'PAID' },
+      orderBy: { paidAt: 'desc' },
+      select: { paidAt: true, amount: true },
+    }),
+    prisma.invoice.findMany({
+      where: { schoolId },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+        paidAt: true,
+        pdfUrl: true,
+      },
     }),
   ]);
 
@@ -55,7 +71,7 @@ export default async function BillingPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-sm">
           <CardHeader>
             <CardDescription>Estado</CardDescription>
@@ -70,17 +86,31 @@ export default async function BillingPage() {
         </Card>
         <Card className="shadow-sm">
           <CardHeader>
-            <CardDescription>Alumnos activos × ${pricePerStudent}/mes</CardDescription>
+            <CardDescription>Pago mensual a Eez4us</CardDescription>
             <CardTitle className="text-4xl text-primary">
               ${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </CardTitle>
-            <p className="text-xs text-muted-foreground">{studentCount} alumnos</p>
+            <p className="text-xs text-muted-foreground">
+              {studentCount} alumnos × ${pricePerStudent}/mes
+            </p>
           </CardHeader>
         </Card>
         <Card className="shadow-sm">
           <CardHeader>
-            <CardDescription>Próxima cobranza</CardDescription>
+            <CardDescription>Fecha de corte</CardDescription>
             <CardTitle className="text-2xl">{fmtDate(sub?.currentPeriodEnd ?? null)}</CardTitle>
+            <p className="text-xs text-muted-foreground">Cierre del periodo actual</p>
+          </CardHeader>
+        </Card>
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardDescription>Último pago</CardDescription>
+            <CardTitle className="text-2xl">{fmtDate(lastPaidInvoice?.paidAt ?? null)}</CardTitle>
+            {lastPaidInvoice && (
+              <p className="text-xs text-muted-foreground">
+                ${lastPaidInvoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            )}
           </CardHeader>
         </Card>
       </div>
@@ -96,6 +126,62 @@ export default async function BillingPage() {
         </CardHeader>
         <CardContent>
           <BillingActions hasSubscription={!!sub?.stripeSubscriptionId} />
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl">Historial de pagos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {invoices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Todavía no hay facturas emitidas.</p>
+          ) : (
+            <ul className="divide-y text-sm">
+              {invoices.map((inv) => (
+                <li key={inv.id} className="flex items-center justify-between gap-3 py-3">
+                  <div>
+                    <p className="font-bold">
+                      ${inv.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Emitida {fmtDate(inv.createdAt)}
+                      {inv.paidAt ? ` · Pagada ${fmtDate(inv.paidAt)}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant={
+                        inv.status === 'PAID'
+                          ? 'success'
+                          : inv.status === 'FAILED'
+                            ? 'destructive'
+                            : 'secondary'
+                      }
+                    >
+                      {inv.status === 'PAID'
+                        ? 'Pagada'
+                        : inv.status === 'FAILED'
+                          ? 'Falló'
+                          : inv.status === 'VOID'
+                            ? 'Anulada'
+                            : 'Pendiente'}
+                    </Badge>
+                    {inv.pdfUrl && (
+                      <a
+                        href={inv.pdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-primary hover:underline"
+                      >
+                        PDF
+                      </a>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
     </div>

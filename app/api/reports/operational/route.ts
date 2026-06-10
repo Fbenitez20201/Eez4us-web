@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 interface DayBucket {
@@ -49,7 +47,21 @@ export async function GET(req: Request): Promise<Response> {
       ? { startedAt: { gte: dayCutoff } }
       : { startedAt: { gte: dayCutoff }, schoolId: schoolFilter };
 
-    const [studentsActive, tripsThisMonth, byStatus, recentTrips, perSchool] = await Promise.all([
+    const parentWhere = isSuper
+      ? { role: 'parent', active: true }
+      : { role: 'parent', active: true, schoolId: schoolFilter };
+
+    const [
+      studentsActive,
+      tripsThisMonth,
+      byStatus,
+      recentTrips,
+      perSchool,
+      deliveredDurations,
+      parentsTotal,
+      parentsWithApp,
+      outsideParents,
+    ] = await Promise.all([
       prisma.student.count({ where: studentWhere }),
       prisma.trip.count({ where: tripMonthWhere }),
       prisma.trip.groupBy({
@@ -68,6 +80,23 @@ export async function GET(req: Request): Promise<Response> {
             _count: { _all: true },
           })
         : Promise.resolve([]),
+      // Duración (voy en camino → entrega) y espera afuera (estoy afuera → entrega) del mes
+      prisma.trip.findMany({
+        where: {
+          ...tripMonthWhere,
+          status: 'ENTREGADO',
+          deliveredAt: { not: null },
+          origin: { in: ['EN_CAMINO', 'ESTOY_AFUERA'] },
+        },
+        select: { origin: true, startedAt: true, deliveredAt: true },
+      }),
+      prisma.user.count({ where: parentWhere }),
+      prisma.user.count({ where: { ...parentWhere, pushTokens: { some: {} } } }),
+      prisma.trip.groupBy({
+        by: ['parentId'],
+        where: { ...tripMonthWhere, origin: 'ESTOY_AFUERA' },
+        _count: { _all: true },
+      }),
     ]);
 
     const delivered = byStatus.find((s) => s.status === 'ENTREGADO')?._count._all ?? 0;
@@ -99,11 +128,31 @@ export async function GET(req: Request): Promise<Response> {
         .sort((a, b) => b.trips - a.trips);
     }
 
+    function avgMinutes(rows: Array<{ startedAt: Date; deliveredAt: Date | null }>): number | null {
+      if (rows.length === 0) return null;
+      const totalMs = rows.reduce(
+        (acc, r) => acc + (r.deliveredAt!.getTime() - r.startedAt.getTime()),
+        0,
+      );
+      return Math.round(totalMs / rows.length / 60000 * 10) / 10;
+    }
+
+    const enCamino = deliveredDurations.filter((d) => d.origin === 'EN_CAMINO');
+    const estoyAfuera = deliveredDurations.filter((d) => d.origin === 'ESTOY_AFUERA');
+
     return Response.json({
       studentsActive,
       tripsThisMonth,
       deliveredPct: Math.round((delivered / total) * 1000) / 10,
       canceledPct: Math.round((canceled / total) * 1000) / 10,
+      // minutos promedio del mes; null = sin datos todavía
+      avgPickupMinutes: avgMinutes(enCamino),
+      avgOutsideWaitMinutes: avgMinutes(estoyAfuera),
+      mobileUsers: { withApp: parentsWithApp, total: parentsTotal },
+      outsideUsage: {
+        parents: outsideParents.length,
+        trips: outsideParents.reduce((a, p) => a + p._count._all, 0),
+      },
       tripsPerDay: buckets,
       breakdown,
     });

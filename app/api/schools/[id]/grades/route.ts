@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireSchool } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 const createSchema = z.object({

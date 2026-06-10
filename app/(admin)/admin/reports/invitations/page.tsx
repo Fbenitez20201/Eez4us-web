@@ -25,11 +25,16 @@ export default async function InvitationsReportPage() {
     prisma.invitation.count({ where: { schoolId } }),
   ]);
 
-  const claimedRate = totals
-    ? Math.round(
-        ((byStatus.find((b) => b.status === 'CLAIMED')?._count._all ?? 0) / totals) * 100,
-      )
-    : 0;
+  const claimedTotal = byStatus.find((b) => b.status === 'CLAIMED')?._count._all ?? 0;
+  const claimedRate = totals ? Math.round((claimedTotal / totals) * 100) : 0;
+
+  const STATUS_LABELS: Record<string, string> = {
+    PENDING: 'Pendiente de envío',
+    SENT: 'Enviada sin registrar',
+    CLAIMED: 'Registrada',
+    EXPIRED: 'Expirada',
+    REVOKED: 'Revocada',
+  };
 
   return (
     <div className="space-y-6">
@@ -40,7 +45,7 @@ export default async function InvitationsReportPage() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs uppercase font-bold text-muted-foreground">Total</p>
@@ -49,7 +54,15 @@ export default async function InvitationsReportPage() {
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-xs uppercase font-bold text-muted-foreground">% claimadas</p>
+            <p className="text-xs uppercase font-bold text-muted-foreground">
+              Registros exitosos
+            </p>
+            <p className="text-3xl font-black text-emerald-600">{claimedTotal}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs uppercase font-bold text-muted-foreground">% registradas</p>
             <p className="text-3xl font-black">{claimedRate}%</p>
           </CardContent>
         </Card>
@@ -76,7 +89,7 @@ export default async function InvitationsReportPage() {
                 key={b.status}
                 className="flex items-center justify-between rounded-2xl bg-secondary px-3 py-2"
               >
-                <span className="font-bold">{b.status}</span>
+                <span className="font-bold">{STATUS_LABELS[b.status] ?? b.status}</span>
                 <span>{b._count._all}</span>
               </li>
             ))}

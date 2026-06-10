@@ -6,8 +6,6 @@ import { prisma } from '@/lib/db';
 import { buildRankedTrips } from '@/lib/pusher-channels';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 interface PageProps {
   params: Promise<{ pickupPointId: string }>;
 }

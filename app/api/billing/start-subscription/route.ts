@@ -2,8 +2,6 @@ import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 import { createCustomer, createSubscription } from '@/lib/stripe';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 export async function POST(req: Request): Promise<Response> {

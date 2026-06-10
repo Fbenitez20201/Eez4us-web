@@ -6,9 +6,9 @@ import { Select } from '@/components/ui/select';
 
 const STATUSES = [
   { value: '', label: 'Todos los estados' },
-  { value: 'PENDING', label: 'Pendientes' },
-  { value: 'SENT', label: 'Enviadas' },
-  { value: 'CLAIMED', label: 'Reclamadas' },
+  { value: 'PENDING', label: 'Pendientes de envío' },
+  { value: 'SENT', label: 'Enviadas sin registrar' },
+  { value: 'CLAIMED', label: 'Registradas' },
   { value: 'EXPIRED', label: 'Expiradas' },
   { value: 'REVOKED', label: 'Revocadas' },
 ];

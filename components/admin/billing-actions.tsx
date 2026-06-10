@@ -42,7 +42,7 @@ export function BillingActions({ hasSubscription }: { hasSubscription: boolean }
     <div className="flex flex-wrap items-center gap-3">
       {hasSubscription ? (
         <Button onClick={openPortal} disabled={isPending}>
-          {isPending ? 'Abriendo portal…' : 'Actualizar tarjeta / ver facturas'}
+          {isPending ? 'Abriendo portal…' : 'Agregar/quitar tarjetas y formas de pago'}
         </Button>
       ) : (
         <Button onClick={startSubscription} disabled={isPending}>

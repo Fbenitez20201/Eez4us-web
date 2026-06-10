@@ -12,6 +12,8 @@ export function NewSchoolForm() {
   const router = useRouter();
   const [name, setName] = useState('');
   const [internalCode, setInternalCode] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('');
   const [directorName, setDirectorName] = useState('');
   const [directorEmail, setDirectorEmail] = useState('');
   const [directorPassword, setDirectorPassword] = useState('');
@@ -28,6 +30,8 @@ export function NewSchoolForm() {
         body: JSON.stringify({
           name,
           internalCode,
+          city: city || undefined,
+          country: country || undefined,
           director: { name: directorName, email: directorEmail, password: directorPassword },
         }),
       });
@@ -60,6 +64,16 @@ export function NewSchoolForm() {
           required
           className="font-mono uppercase"
         />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label>Ciudad</Label>
+          <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Monterrey" />
+        </div>
+        <div>
+          <Label>País</Label>
+          <Input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="México" />
+        </div>
       </div>
       <hr className="my-4" />
       <p className="text-sm font-bold uppercase text-muted-foreground">Director inicial</p>

@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['super_admin'];
 
 const createSchema = z
@@ -13,6 +11,8 @@ const createSchema = z
     email: z.string().email().optional(),
     name: z.string().trim().min(1).max(120).optional(),
     commissionPct: z.number().min(0).max(1).default(0.1),
+    // null = sin límite; N = la comisión corre solo los N primeros periodos de pago
+    commissionMonths: z.number().int().min(1).max(60).nullable().optional(),
   })
   .refine((d) => !!d.userId || (!!d.email && !!d.name), {
     message: 'userId OR (email AND name) required',
@@ -76,7 +76,11 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     const vendor = await prisma.vendor.create({
-      data: { userId, commissionPct: body.commissionPct },
+      data: {
+        userId,
+        commissionPct: body.commissionPct,
+        commissionMonths: body.commissionMonths ?? null,
+      },
       include: { user: { select: { id: true, email: true, name: true } } },
     });
     return Response.json({ vendor });

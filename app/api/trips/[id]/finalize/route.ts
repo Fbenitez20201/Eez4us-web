@@ -3,8 +3,6 @@ import { sendPushToUser } from '@/lib/push';
 import { broadcastRankedTrips, broadcastTripUpdate } from '@/lib/pusher-channels';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['support_staff', 'director', 'super_admin'];
 
 export async function POST(

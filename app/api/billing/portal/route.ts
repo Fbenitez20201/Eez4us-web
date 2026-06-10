@@ -1,8 +1,6 @@
 import { jsonError, requireRole } from '@/lib/session';
 import { createCustomerPortalLink, readPortalReturnUrl } from '@/lib/stripe';
 
-export const runtime = 'edge';
-
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
 export async function POST(req: Request): Promise<Response> {

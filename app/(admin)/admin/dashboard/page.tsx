@@ -1,81 +1,68 @@
-import { MapPin } from 'lucide-react';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
-import { EmptyState } from '@/components/empty-state';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LiveArrivalsBoard } from '@/components/admin/live-arrivals-board';
 import { prisma } from '@/lib/db';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
+interface DismissalBucket {
+  time: string;
+  levels: string[];
+  gradeNames: string[];
+  studentsCount: number;
+}
 
 export default async function DashboardHomePage() {
   const session = await getCurrentSession();
   if (!session || !session.user.schoolId) redirect('/login');
   const schoolId = session.user.schoolId;
 
-  const [pickupPoints, counts] = await Promise.all([
+  const [pickupPoints, grades] = await Promise.all([
     prisma.pickupPoint.findMany({
       where: { schoolId, active: true },
       orderBy: { createdAt: 'asc' },
-      select: { id: true, name: true, centerLat: true, centerLng: true, radiusMeters: true },
+      select: { id: true, name: true, radiusMeters: true },
     }),
-    prisma.trip.groupBy({
-      by: ['pickupPointId'],
-      where: { schoolId, status: { in: ['EN_CAMINO', 'EN_ZONA'] } },
-      _count: { _all: true },
+    prisma.grade.findMany({
+      where: { schoolId, NOT: { dismissalTime: null } },
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        level: true,
+        dismissalTime: true,
+        _count: { select: { students: true } },
+      },
     }),
   ]);
 
-  const countMap = new Map(counts.map((c) => [c.pickupPointId, c._count._all]));
+  // Agrupar por hora de salida
+  const bucketsMap = new Map<string, DismissalBucket>();
+  for (const g of grades) {
+    if (!g.dismissalTime) continue;
+    const existing = bucketsMap.get(g.dismissalTime);
+    if (existing) {
+      if (g.level && !existing.levels.includes(g.level)) existing.levels.push(g.level);
+      existing.gradeNames.push(g.name);
+      existing.studentsCount += g._count.students;
+    } else {
+      bucketsMap.set(g.dismissalTime, {
+        time: g.dismissalTime,
+        levels: g.level ? [g.level] : [],
+        gradeNames: [g.name],
+        studentsCount: g._count.students,
+      });
+    }
+  }
+  const buckets = Array.from(bucketsMap.values()).sort((a, b) =>
+    a.time.localeCompare(b.time),
+  );
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-black">Dashboard en vivo</h1>
-        <p className="text-sm text-muted-foreground">
-          Elegí un punto de recogida para ver los viajes activos rankeados por ETA.
-        </p>
-      </div>
-
-      {pickupPoints.length === 0 ? (
-        <EmptyState
-          icon={MapPin}
-          title="Ningún punto de recogida configurado"
-          description="Configurá al menos un punto para empezar a recibir viajes en este tablero."
-          action={
-            <Link href="/admin/pickup-points/new">
-              <Button>Crear punto de recogida</Button>
-            </Link>
-          }
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {pickupPoints.map((pp) => {
-            const active = countMap.get(pp.id) ?? 0;
-            return (
-              <Link key={pp.id} href={`/admin/dashboard/pickup/${pp.id}`}>
-                <Card className="h-full shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                  <CardHeader>
-                    <CardDescription className="font-bold uppercase tracking-wide">
-                      {pp.name}
-                    </CardDescription>
-                    <CardTitle className="text-5xl text-primary">{active}</CardTitle>
-                    <p className="pt-1 text-xs text-muted-foreground">
-                      {active === 1 ? 'viaje activo' : 'viajes activos'}
-                    </p>
-                  </CardHeader>
-                  <CardContent className="pb-6 text-xs text-muted-foreground">
-                    Radio {pp.radiusMeters} m · {pp.centerLat.toFixed(4)},{' '}
-                    {pp.centerLng.toFixed(4)}
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <LiveArrivalsBoard
+      pickupPoints={pickupPoints}
+      role={session.user.role}
+      schoolName={null}
+      dismissalBuckets={buckets}
+    />
   );
 }

@@ -105,6 +105,7 @@ export async function buildRankedTrips(schoolId: string, pickupPointId: string):
     parentName: t.parent.name,
     vehicle: t.vehicle,
     isWalkup: t.isWalkup,
+    origin: t.origin,
     students: t.tripStudents.map((ts) => ts.student),
     status: t.status,
     etaSeconds: t.etaSeconds,

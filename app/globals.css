@@ -4,26 +4,64 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Paleta ejecutiva: blanco/gris cálido, verde marca como acento.
+       Inspiración: tequio.work — airy, neutral, single accent. */
+    --background: 210 30% 99%;
+    --foreground: 222 30% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 222 30% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 215 90% 57%;
+    --popover-foreground: 222 30% 12%;
+
+    /* Verde sobrio (Bamboo-ish) por default. Cada colegio puede sobreescribirlo. */
+    --primary: 142 55% 36%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 84% 60%;
+
+    /* Color de acento por colegio (íconos, bandas de tiles). Lo sobreescribe el layout admin. */
+    --brand-accent: 142 62% 45%;
+
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 222 30% 14%;
+    --muted: 210 20% 95%;
+    --muted-foreground: 215 14% 42%;
+    --accent: 210 20% 96%;
+    --accent-foreground: 222 30% 14%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 215 90% 57%;
-    --radius: 1rem;
+    /* Bordes más definidos: que se distingan claramente las secciones sobre el fondo */
+    --border: 214 22% 82%;
+    --input: 214 20% 80%;
+    --ring: 142 55% 36%;
+    --radius: 0.75rem;
+
+    /* Densidad — controlada vía data-density en el shell admin */
+    --shell-px: 2rem;        /* horizontal del main container */
+    --shell-py: 2rem;        /* vertical del main container */
+    --shell-gap: 2.5rem;     /* gap entre secciones (space-y) */
+    --card-p: 1.5rem;        /* padding interno de cards */
+
+    /* Colores brand para usos puntuales (mobile, logo). NO para el panel admin. */
+    --brand-green: 104 75% 51%;
+    --brand-yellow: 50 100% 55%;
+    --brand-orange: 28 100% 56%;
+    --brand-red: 354 80% 56%;
+    --brand-blue: 211 100% 56%;
+    --brand-purple: 280 70% 53%;
+    --brand-pink: 326 90% 60%;
+  }
+
+  [data-density='compact'] {
+    --shell-px: 1.25rem;
+    --shell-py: 1.25rem;
+    --shell-gap: 1.5rem;
+    --card-p: 1rem;
+  }
+
+  [data-density='spacious'] {
+    --shell-px: 3rem;
+    --shell-py: 3rem;
+    --shell-gap: 3.5rem;
+    --card-p: 2rem;
   }
 }
 
@@ -31,7 +69,84 @@
   * {
     @apply border-border;
   }
+  html,
   body {
     @apply bg-background text-foreground font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Sombra suave estilo tequio — apenas perceptible, da elevación sin ruido */
+  .shadow-card {
+    box-shadow: 0 1px 2px hsl(222 30% 14% / 0.04), 0 1px 0 hsl(var(--border));
+  }
+  .shadow-elev {
+    box-shadow:
+      0 4px 12px -6px hsl(222 30% 14% / 0.10),
+      0 2px 4px -2px hsl(222 30% 14% / 0.06),
+      0 1px 0 hsl(var(--border));
+  }
+  .shadow-pop {
+    box-shadow:
+      0 16px 40px -16px hsl(222 30% 14% / 0.18),
+      0 4px 12px -4px hsl(222 30% 14% / 0.08);
+  }
+
+  /* Utilities density-aware — leen las variables de :root[data-density] */
+  .shell-px {
+    padding-left: var(--shell-px);
+    padding-right: var(--shell-px);
+  }
+  .shell-py {
+    padding-top: var(--shell-py);
+    padding-bottom: var(--shell-py);
+  }
+  .shell-gap > * + * {
+    margin-top: var(--shell-gap);
+  }
+  .card-p {
+    padding: var(--card-p);
+  }
+
+  /* Fondo colorido (login) — con los brand colors en blur en las esquinas */
+  .auth-bg {
+    background:
+      radial-gradient(
+        circle at 0% 0%,
+        hsl(var(--brand-green) / 0.18) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 100% 0%,
+        hsl(var(--brand-pink) / 0.16) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 0% 100%,
+        hsl(var(--brand-yellow) / 0.16) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 100% 100%,
+        hsl(var(--brand-purple) / 0.16) 0%,
+        transparent 42%
+      ),
+      radial-gradient(
+        circle at 50% 50%,
+        hsl(var(--brand-blue) / 0.08) 0%,
+        transparent 62%
+      ),
+      hsl(var(--background));
+  }
+
+  /* Fondo plano para legales y páginas internas no-admin */
+  .legal-bg {
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(210 22% 97%) 100%);
   }
 }

@@ -1,21 +1,21 @@
 import { cn } from '@/lib/utils';
 
 const STYLES: Record<string, { label: string; className: string }> = {
-  EN_CAMINO: { label: 'En camino', className: 'bg-blue-100 text-blue-800' },
+  EN_CAMINO: { label: 'En camino', className: 'bg-blue-50 text-blue-900 border border-blue-200' },
   EN_ZONA: {
-    label: 'En zona',
-    className: 'bg-amber-100 text-amber-800 animate-pulse',
+    label: 'En la puerta',
+    className: 'bg-amber-100 text-amber-900 border border-amber-300',
   },
-  ENTREGADO: { label: 'Entregado', className: 'bg-green-100 text-green-800' },
-  CANCELADO: { label: 'Cancelado', className: 'bg-gray-200 text-gray-700' },
+  ENTREGADO: { label: 'Entregado', className: 'bg-green-50 text-green-900 border border-green-200' },
+  CANCELADO: { label: 'Cancelado', className: 'bg-secondary text-muted-foreground border border-border' },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const cfg = STYLES[status] ?? { label: status, className: 'bg-gray-100 text-gray-800' };
+  const cfg = STYLES[status] ?? { label: status, className: 'bg-secondary text-foreground border border-border' };
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide',
+        'inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold',
         cfg.className,
       )}
     >

@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 import { onStudentCreated } from '@/lib/billing-hooks';
 import { prisma } from '@/lib/db';
+import { inviteRepresentatives, representativeSchema } from '@/lib/invitations';
 import { jsonError, requireSchool } from '@/lib/session';
-
-export const runtime = 'edge';
+import { normalizePickup, pickupFields } from '@/lib/student-pickup';
 
 const ALLOWED_ROLES = ['director', 'super_admin'];
 
@@ -19,6 +19,8 @@ const createSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal('').transform(() => null)),
+  ...pickupFields,
+  representatives: z.array(representativeSchema).max(10).optional(),
 });
 
 export async function POST(
@@ -50,6 +52,11 @@ export async function POST(
       }
     }
 
+    const pickup = normalizePickup(body);
+    if (!pickup.ok) {
+      return Response.json({ error: pickup.error }, { status: 400 });
+    }
+
     const student = await prisma.student.create({
       data: {
         schoolId,
@@ -58,11 +65,29 @@ export async function POST(
         gradeId: body.gradeId ?? null,
         externalId: body.externalId ?? null,
         birthDate: body.birthDate ? new Date(body.birthDate) : null,
+        ...pickup.value,
       },
       select: { id: true, firstName: true, lastName: true, externalId: true, gradeId: true },
     });
     await onStudentCreated(schoolId);
-    return Response.json({ student });
+
+    const reps = body.representatives ?? [];
+    const studentName = `${student.firstName} ${student.lastName}`.trim();
+    const { createdCount, sentCount, repErrors } =
+      reps.length > 0
+        ? await inviteRepresentatives({
+            schoolId,
+            studentIds: [student.id],
+            studentNames: [studentName],
+            representatives: reps,
+          })
+        : { createdCount: 0, sentCount: 0, repErrors: [] };
+
+    return Response.json({
+      student,
+      invitations: { createdCount, sentCount },
+      repErrors,
+    });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return Response.json({ error: 'INVALID_BODY', issues: err.issues }, { status: 400 });

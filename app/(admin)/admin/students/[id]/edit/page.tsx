@@ -14,7 +14,7 @@ export default async function EditStudentPage({
   const schoolId = session.user.schoolId;
   const { id } = await params;
 
-  const [student, grades] = await Promise.all([
+  const [student, grades, invitations] = await Promise.all([
     prisma.student.findUnique({
       where: { id },
       select: {
@@ -25,6 +25,16 @@ export default async function EditStudentPage({
         gradeId: true,
         externalId: true,
         birthDate: true,
+        pickupMode: true,
+        transportName: true,
+        transportPlate: true,
+        transportPhone: true,
+        transportVehicleType: true,
+        parents: {
+          select: {
+            parent: { select: { id: true, name: true, email: true, phoneE164: true } },
+          },
+        },
       },
     }),
     prisma.grade.findMany({
@@ -32,9 +42,33 @@ export default async function EditStudentPage({
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     }),
+    prisma.invitation.findMany({
+      where: { schoolId, studentIds: { has: id } },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        recipientName: true,
+        channel: true,
+        contactValue: true,
+        status: true,
+        sentAt: true,
+      },
+    }),
   ]);
 
   if (!student || student.schoolId !== schoolId) notFound();
+
+  const existingReps = student.parents.map((ps) => ps.parent);
+  const pendingInvitations = invitations
+    .filter((inv) => inv.status !== 'CLAIMED' && inv.status !== 'REVOKED')
+    .map((inv) => ({
+      id: inv.id,
+      recipientName: inv.recipientName,
+      channel: inv.channel,
+      contactValue: inv.contactValue,
+      status: inv.status,
+      sentAt: inv.sentAt?.toISOString() ?? null,
+    }));
 
   return (
     <div className="space-y-6">
@@ -54,7 +88,14 @@ export default async function EditStudentPage({
           gradeId: student.gradeId,
           externalId: student.externalId,
           birthDate: student.birthDate?.toISOString() ?? null,
+          pickupMode: student.pickupMode,
+          transportName: student.transportName,
+          transportPlate: student.transportPlate,
+          transportPhone: student.transportPhone,
+          transportVehicleType: student.transportVehicleType,
         }}
+        existingReps={existingReps}
+        pendingInvitations={pendingInvitations}
       />
     </div>
   );

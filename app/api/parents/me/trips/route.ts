@@ -1,13 +1,11 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export async function GET(req: Request): Promise<Response> {
   try {
     const session = await requireRole(req, ['parent']);
     const trips = await prisma.trip.findMany({
-      where: { parentId: session.user.id },
+      where: { parentId: session.user.id, isWalkup: false },
       orderBy: { startedAt: 'desc' },
       take: 50,
       select: {

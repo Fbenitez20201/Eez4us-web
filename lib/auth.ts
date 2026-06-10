@@ -11,6 +11,16 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    sendResetPassword: async ({ user, url }) => {
+      // En dev escribimos el link a stdout — en prod enchufar Resend / n8n.
+      // El cliente solo recibe un genérico "si existe el email te mandamos un link".
+      console.log(
+        `\n=================== RESET PASSWORD ===================\n` +
+          `User : ${user.email}\n` +
+          `Link : ${url}\n` +
+          `======================================================\n`,
+      );
+    },
   },
   user: {
     additionalFields: {

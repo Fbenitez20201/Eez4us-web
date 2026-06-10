@@ -1,8 +1,6 @@
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export async function GET(req: Request): Promise<Response> {
   try {
     const session = await requireRole(req, ['parent']);
@@ -10,6 +8,7 @@ export async function GET(req: Request): Promise<Response> {
       where: {
         parentId: session.user.id,
         status: { in: ['EN_CAMINO', 'EN_ZONA'] },
+        isWalkup: false,
       },
       orderBy: { startedAt: 'desc' },
       select: {

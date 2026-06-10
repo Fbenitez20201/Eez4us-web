@@ -1,13 +1,47 @@
 import type { Invitation, InvitationChannel } from '@prisma/client';
 import { customAlphabet } from 'nanoid';
+import { z } from 'zod';
 
 import { auth } from './auth';
 import { prisma } from './db';
+import { sendInvitationEmail } from './mailer';
+import { sendWhatsAppInvitation } from './n8n';
 
 const TOKEN_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const generateToken = customAlphabet(TOKEN_ALPHABET, 24);
 
 const DEFAULT_EXPIRY_DAYS = 14;
+
+const nullableEmail = z
+  .string()
+  .trim()
+  .email()
+  .max(160)
+  .nullable()
+  .optional()
+  .or(z.literal('').transform(() => null));
+
+const nullablePhone = z
+  .string()
+  .trim()
+  .min(5)
+  .max(20)
+  .nullable()
+  .optional()
+  .or(z.literal('').transform(() => null));
+
+export const representativeSchema = z
+  .object({
+    firstName: z.string().trim().min(1).max(80),
+    lastName: z.string().trim().min(1).max(80),
+    email: nullableEmail,
+    phoneE164: nullablePhone,
+  })
+  .refine((r) => Boolean(r.email) || Boolean(r.phoneE164), {
+    message: 'REP_NEEDS_CONTACT',
+  });
+
+export type RepresentativeInput = z.infer<typeof representativeSchema>;
 
 export interface CreateInvitationArgs {
   schoolId: string;
@@ -50,6 +84,154 @@ export async function createInvitation({
       expiresAt,
     },
   });
+}
+
+export function pickChannel(contact: {
+  email?: string | null;
+  phoneE164?: string | null;
+}): InvitationChannel | null {
+  if (contact.email && contact.email.trim()) return 'EMAIL';
+  if (contact.phoneE164 && contact.phoneE164.trim()) return 'WHATSAPP';
+  return null;
+}
+
+export function inviteLink(token: string): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? process.env.BETTER_AUTH_URL ?? '';
+  return `${base.replace(/\/$/, '')}/invite/${token}`;
+}
+
+interface DispatchInvitationArgs {
+  channel: InvitationChannel;
+  contactValue: string;
+  link: string;
+  parentName: string;
+  studentNames: string[];
+}
+
+export async function dispatchInvitation({
+  channel,
+  contactValue,
+  link,
+  parentName,
+  studentNames,
+}: DispatchInvitationArgs): Promise<void> {
+  if (channel === 'EMAIL') {
+    await sendInvitationEmail({ email: contactValue, link, parentName, studentNames });
+  } else {
+    await sendWhatsAppInvitation({ phone: contactValue, link, parentName, studentNames });
+  }
+}
+
+interface SendInvitationArgs {
+  invitationId: string;
+  channel: InvitationChannel;
+  contactValue: string;
+  token: string;
+  parentName: string;
+  studentNames: string[];
+}
+
+export async function sendInvitation({
+  invitationId,
+  channel,
+  contactValue,
+  token,
+  parentName,
+  studentNames,
+}: SendInvitationArgs): Promise<void> {
+  await dispatchInvitation({
+    channel,
+    contactValue,
+    link: inviteLink(token),
+    parentName,
+    studentNames,
+  });
+  await prisma.invitation.update({
+    where: { id: invitationId },
+    data: { status: 'SENT', sentAt: new Date() },
+  });
+}
+
+export interface InviteRepresentativesResult {
+  createdCount: number;
+  sentCount: number;
+  repErrors: Array<{ rep: string; reason: string }>;
+}
+
+export async function inviteRepresentatives({
+  schoolId,
+  studentIds,
+  studentNames,
+  representatives,
+}: {
+  schoolId: string;
+  studentIds: string[];
+  studentNames: string[];
+  representatives: RepresentativeInput[];
+}): Promise<InviteRepresentativesResult> {
+  const repErrors: Array<{ rep: string; reason: string }> = [];
+  const created: Array<{
+    invitationId: string;
+    channel: InvitationChannel;
+    contactValue: string;
+    token: string;
+    parentName: string;
+  }> = [];
+
+  for (const rep of representatives) {
+    const repName = `${rep.firstName} ${rep.lastName}`.trim();
+    const channel = pickChannel(rep);
+    if (!channel) {
+      repErrors.push({ rep: repName, reason: 'REP_NEEDS_CONTACT' });
+      continue;
+    }
+    try {
+      const invitation = await createInvitation({
+        schoolId,
+        parent: {
+          firstName: rep.firstName,
+          lastName: rep.lastName,
+          email: rep.email ?? null,
+          phoneE164: rep.phoneE164 ?? null,
+        },
+        studentIds,
+        channel,
+      });
+      created.push({
+        invitationId: invitation.id,
+        channel,
+        contactValue: invitation.contactValue,
+        token: invitation.token,
+        parentName: repName,
+      });
+    } catch (err) {
+      repErrors.push({ rep: repName, reason: err instanceof Error ? err.message : 'unknown' });
+    }
+  }
+
+  const sendResults = await Promise.allSettled(
+    created.map((c) =>
+      sendInvitation({
+        invitationId: c.invitationId,
+        channel: c.channel,
+        contactValue: c.contactValue,
+        token: c.token,
+        parentName: c.parentName,
+        studentNames,
+      }),
+    ),
+  );
+  sendResults.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      repErrors.push({ rep: created[i].parentName, reason: `send: ${String(r.reason)}` });
+    }
+  });
+
+  return {
+    createdCount: created.length,
+    sentCount: sendResults.filter((r) => r.status === 'fulfilled').length,
+    repErrors,
+  };
 }
 
 export interface ClaimInvitationArgs {

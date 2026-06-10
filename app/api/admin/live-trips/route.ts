@@ -29,6 +29,7 @@ export async function GET(req: Request): Promise<Response> {
         pickupPointId: t.pickupPoint.id,
         pickupPointName: t.pickupPoint.name,
         isWalkup: t.isWalkup,
+        origin: t.origin,
         vehiclePlate: t.vehicle?.plate ?? null,
         vehicleModel: t.vehicle?.model ?? null,
         vehicleColor: t.vehicle?.color ?? null,

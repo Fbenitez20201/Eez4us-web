@@ -5,8 +5,6 @@ import { claimInvitation } from '@/lib/invitations';
 import { sendPushToSchoolRoles } from '@/lib/push';
 import { HttpError, jsonError } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const bodySchema = z.object({
   token: z.string().min(8).max(64),
   password: z.string().min(8).max(128),

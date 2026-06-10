@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const patchSchema = z.object({
   status: z.enum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']).optional(),
 });

@@ -3,33 +3,13 @@ import distance from '@turf/distance';
 import { point } from '@turf/helpers';
 
 import { prisma } from './db';
+import type { RosterEntry, RosterProximity } from './trip-types';
 
 // Roles que operan el portón desde el mobile: la "miss" (logistics) + staff de la
 // escuela. NO incluye parent ni vendor.
 export const GATE_ROLES = ['logistics', 'support_staff', 'director', 'super_admin'];
 
-export type RosterProximity = 'EN_CAMINO' | 'CERCA' | 'EN_PUERTA';
-
-export interface RosterEntry {
-  tripId: string;
-  student: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    grade: { id: string; name: string } | null;
-  };
-  pickupBy: {
-    // 'walkup' = recogida en puerta sin viaje del padre (§A7-ter): identidad del que
-    // recoge desconocida por el sistema; la valida visualmente la miss.
-    kind: 'parent' | 'authorized-family' | 'temporary-auth' | 'walkup';
-    name: string;
-    relationship?: string | null;
-  };
-  vehicle: { plate: string; model: string; color: string } | null;
-  etaSeconds: number | null;
-  proximity: RosterProximity; // semáforo, lo computa el back
-  atGate: boolean;
-}
+export type { RosterEntry, RosterProximity };
 
 // Umbrales del semáforo. EN_PUERTA = dentro del geofence (mismo criterio que el
 // backend de ETA: turf.distance Haversine, NO Google). CERCA = a un par de radios
@@ -156,13 +136,15 @@ export async function getPickupRoster(
 }
 
 // Resuelve la tarjeta QR fija (token → studentId) a la recogida activa y autorizada AHORA
-// de ese alumno. Devuelve la entry de ESE alumno (no la de los hermanos). null = sin viaje
-// activo. Desempate si hay varias: la del pickup point del escáner, sino la más reciente.
-export async function resolveActiveEntryForStudent(
+// de ese alumno. Devuelve la entry de ESE alumno + las de los hermanos pendientes del MISMO
+// viaje (un solo escaneo basta para liberar al grupo; la entrega sigue siendo por-alumno).
+// null = sin viaje activo. Desempate si hay varias: la del pickup point del escáner, sino
+// la más reciente.
+export async function resolveActiveEntriesForStudent(
   schoolId: string,
   studentId: string,
   pickupPointId?: string,
-): Promise<RosterEntry | null> {
+): Promise<{ entry: RosterEntry; groupedEntries: RosterEntry[] } | null> {
   const trips = await prisma.trip.findMany({
     where: {
       schoolId,
@@ -175,8 +157,12 @@ export async function resolveActiveEntryForStudent(
   if (trips.length === 0) return null;
   const trip = (pickupPointId && trips.find((t) => t.pickupPointId === pickupPointId)) || trips[0];
   // rosterTripInclude ya filtra entregados, así que la entry del alumno está presente.
-  return tripToRosterEntries(trip).find((e) => e.student.id === studentId) ?? null;
+  const groupedEntries = tripToRosterEntries(trip);
+  const entry = groupedEntries.find((e) => e.student.id === studentId);
+  if (!entry) return null;
+  return { entry, groupedEntries };
 }
+
 
 export type WalkupResult =
   | { ok: true; entry: RosterEntry }
@@ -221,6 +207,7 @@ export async function createWalkupEntry(params: {
       parentId,
       vehicleId: null,
       isWalkup: true,
+      origin: 'WALKUP',
       status: 'EN_ZONA',
       arrivedAt: new Date(),
       tripStudents: { create: { studentId: params.studentId } },

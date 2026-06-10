@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
 import { broadcastRankedTrips } from '@/lib/pusher-channels';
-import { createWalkupEntry, GATE_ROLES, resolveActiveEntryForStudent } from '@/lib/roster';
+import { createWalkupEntry, GATE_ROLES, resolveActiveEntriesForStudent } from '@/lib/roster';
 import { RosterTokenError, verifyStudentQrToken } from '@/lib/roster-token';
 import { jsonError, requireRole } from '@/lib/session';
 
@@ -47,14 +47,15 @@ export async function POST(req: Request): Promise<Response> {
     }
 
     // ¿Ya hay una recogida activa para este alumno? (incluye un walk-up previo del mismo
-    // escaneo: idempotente).
-    const active = await resolveActiveEntryForStudent(
+    // escaneo: idempotente). groupedEntries trae a los hermanos pendientes del MISMO viaje:
+    // un solo escaneo basta para que la miss libere al grupo, alumno por alumno.
+    const active = await resolveActiveEntriesForStudent(
       session.user.schoolId,
       claims.studentId,
       pickupPointId,
     );
     if (active) {
-      return Response.json({ entry: active });
+      return Response.json({ entry: active.entry, groupedEntries: active.groupedEntries });
     }
 
     // Walk-up: sin viaje activo necesitamos saber en qué portón estamos para crearlo.
@@ -89,7 +90,7 @@ export async function POST(req: Request): Promise<Response> {
       // realtime best-effort
     }
 
-    return Response.json({ entry: result.entry });
+    return Response.json({ entry: result.entry, groupedEntries: [result.entry] });
   } catch (err) {
     if (err instanceof z.ZodError) {
       return Response.json({ error: 'INVALID_BODY' }, { status: 400 });

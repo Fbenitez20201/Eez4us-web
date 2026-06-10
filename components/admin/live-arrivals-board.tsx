@@ -16,6 +16,8 @@ interface LiveTrip {
   vehicleModel?: string;
   vehicleColor?: string;
   status: 'EN_CAMINO' | 'EN_ZONA' | string;
+  // EN_CAMINO = GPS · ESTOY_AFUERA = padre afuera sin GPS · WALKUP = creado en portón
+  origin?: 'EN_CAMINO' | 'ESTOY_AFUERA' | 'WALKUP';
   etaSeconds: number | null;
   lastLat: number | null;
   lastLng: number | null;
@@ -176,8 +178,13 @@ export function LiveArrivalsBoard({
     }
   }
 
-  const totalActive = trips.length;
-  const inZone = trips.filter((t) => t.status === 'EN_ZONA').length;
+  const outside = trips.filter(
+    (t) => t.status === 'EN_ZONA' && t.origin && t.origin !== 'EN_CAMINO',
+  ).length;
+  const inZone = trips.filter(
+    (t) => t.status === 'EN_ZONA' && (!t.origin || t.origin === 'EN_CAMINO'),
+  ).length;
+  const enRoute = trips.length - inZone - outside;
 
   return (
     <div className="space-y-6">
@@ -290,19 +297,25 @@ export function LiveArrivalsBoard({
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* Stats: ventana GPS (en camino / en la puerta) + ventana padres afuera (sin GPS) */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            En camino
+            En camino (GPS)
           </p>
-          <p className="mt-1 text-3xl font-bold">{totalActive}</p>
+          <p className="mt-1 text-3xl font-bold">{enRoute}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            En la puerta
+            En la puerta (GPS)
           </p>
           <p className="mt-1 text-3xl font-bold text-amber-700">{inZone}</p>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Padres afuera (sin GPS)
+          </p>
+          <p className="mt-1 text-3xl font-bold text-violet-700">{outside}</p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -406,7 +419,7 @@ export function LiveArrivalsBoard({
                       <td className="px-4 py-3 align-middle">
                         <p className="font-semibold leading-tight">{trip.parentName}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {trip.vehiclePlate}
+                          {trip.vehiclePlate ?? 'Sin vehículo'}
                           {trip.vehicleModel ? ` · ${trip.vehicleModel}` : ''}
                           {trip.vehicleColor ? ` · ${trip.vehicleColor}` : ''}
                         </p>
@@ -433,7 +446,12 @@ export function LiveArrivalsBoard({
                         </p>
                       </td>
                       <td className="px-4 py-3 align-middle">
-                        {inZoneRow ? (
+                        {inZoneRow && trip.origin && trip.origin !== 'EN_CAMINO' ? (
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-violet-50 px-2 py-1 text-xs font-bold text-violet-900 border border-violet-200">
+                            <Circle className="h-2 w-2 fill-current animate-pulse" />
+                            {trip.origin === 'WALKUP' ? 'Retiro en puerta' : 'Afuera (sin GPS)'}
+                          </span>
+                        ) : inZoneRow ? (
                           <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900 border border-amber-300">
                             <Circle className="h-2 w-2 fill-current animate-pulse" />
                             En la puerta

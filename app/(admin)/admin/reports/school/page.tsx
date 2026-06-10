@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { SchoolReport } from '@/components/admin/school-report';
 import { getCurrentSession } from '@/lib/session';
 
-export const runtime = 'edge';
-
 export default async function SchoolReportPage() {
   const session = await getCurrentSession();
   if (!session) redirect('/login');

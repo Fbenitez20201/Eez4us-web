@@ -3,8 +3,6 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { jsonError, requireRole } from '@/lib/session';
 
-export const runtime = 'edge';
-
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(120),
   internalCode: z

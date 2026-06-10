@@ -1,6 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  AdvancedMarker,
+  APIProvider,
+  Map,
+  useMap,
+  useMapsLibrary,
+} from '@vis.gl/react-google-maps';
+import { Fragment, useEffect, useState } from 'react';
+
+const DEMO_MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? 'DEMO_MAP_ID';
 
 interface PickupPoint {
   id: string;
@@ -28,9 +37,42 @@ interface Props {
   pickupPoints: PickupPoint[];
 }
 
+function GeofenceCircle({
+  centerLat,
+  centerLng,
+  radiusMeters,
+}: {
+  centerLat: number;
+  centerLng: number;
+  radiusMeters: number;
+}) {
+  const map = useMap();
+  const mapsLib = useMapsLibrary('maps');
+
+  useEffect(() => {
+    if (!map || !mapsLib) return;
+    const circle = new mapsLib.Circle({
+      center: { lat: centerLat, lng: centerLng },
+      radius: radiusMeters,
+      strokeColor: '#1d4ed8',
+      strokeOpacity: 0.9,
+      strokeWeight: 2,
+      fillColor: '#3b82f6',
+      fillOpacity: 0.15,
+      clickable: false,
+      map,
+    });
+    return () => circle.setMap(null);
+  }, [map, mapsLib, centerLat, centerLng, radiusMeters]);
+
+  return null;
+}
+
 export function LiveMap({ center, pickupPoints }: Props) {
   const [trips, setTrips] = useState<LiveTrip[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapError, setMapError] = useState(false);
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_WEB_KEY;
 
   useEffect(() => {
     let cancelled = false;
@@ -54,14 +96,70 @@ export function LiveMap({ center, pickupPoints }: Props) {
     };
   }, []);
 
+  const tripsWithPosition = trips.filter((t) => t.lastLat != null && t.lastLng != null);
+
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border-2 border-dashed bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
-        <p className="font-bold">Centro: {center.lat.toFixed(4)}, {center.lng.toFixed(4)}</p>
-        <p className="mt-1">
-          Mapa visual requiere Google Maps API key real. En modo dev mostramos lista en vivo.
-        </p>
-      </div>
+      {apiKey?.startsWith('AIza') && !mapError ? (
+        <div className="h-[480px] overflow-hidden rounded-2xl border">
+          <APIProvider apiKey={apiKey} onError={() => setMapError(true)}>
+            <Map
+              defaultCenter={center}
+              defaultZoom={14}
+              mapId={DEMO_MAP_ID}
+              gestureHandling="greedy"
+              disableDefaultUI={false}
+              className="h-full w-full"
+            >
+              {pickupPoints.map((pp) => (
+                <Fragment key={pp.id}>
+                  <AdvancedMarker position={{ lat: pp.centerLat, lng: pp.centerLng }}>
+                    <div className="rounded-xl bg-primary px-2 py-1 text-xs font-bold text-primary-foreground shadow">
+                      {pp.name}
+                    </div>
+                  </AdvancedMarker>
+                  <GeofenceCircle
+                    centerLat={pp.centerLat}
+                    centerLng={pp.centerLng}
+                    radiusMeters={pp.radiusMeters}
+                  />
+                </Fragment>
+              ))}
+
+              {tripsWithPosition.map((t) => (
+                <AdvancedMarker
+                  key={t.id}
+                  position={{ lat: t.lastLat as number, lng: t.lastLng as number }}
+                >
+                  <div
+                    className={
+                      'rounded-full border-2 bg-white px-2 py-1 text-xs font-bold shadow ' +
+                      (t.status === 'EN_ZONA'
+                        ? 'border-green-500 text-green-700'
+                        : 'border-blue-500 text-blue-700')
+                    }
+                  >
+                    {t.etaSeconds != null
+                      ? `${Math.round(t.etaSeconds / 60)} min`
+                      : t.parentName.split(' ')[0]}
+                  </div>
+                </AdvancedMarker>
+              ))}
+            </Map>
+          </APIProvider>
+        </div>
+      ) : (
+        <div className="rounded-2xl border-2 border-dashed bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
+          <p className="font-bold">
+            Centro: {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
+          </p>
+          <p className="mt-1">
+            {apiKey
+              ? 'No se pudo cargar Google Maps. Verificá que la API key sea válida y tenga habilitada Maps JavaScript API.'
+              : 'Configurá NEXT_PUBLIC_GOOGLE_MAPS_WEB_KEY para ver el mapa.'}
+          </p>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div>

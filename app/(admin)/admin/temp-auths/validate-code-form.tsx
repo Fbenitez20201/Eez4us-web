@@ -118,6 +118,10 @@ export function ValidateCodeForm() {
                 ))}
               </ul>
             </div>
+            <p className="rounded-xl bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-900">
+              Recomendación: pedile a la persona autorizada que pase personalmente con un
+              encargado de la escuela — no subir al alumno al vehículo sin verificar identidad.
+            </p>
             <Button onClick={onConfirm} disabled={confirming} className="w-full" size="lg">
               {confirming ? 'Confirmando…' : 'Confirmar entrega'}
             </Button>

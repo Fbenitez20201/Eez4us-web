@@ -3,8 +3,6 @@ import type Stripe from 'stripe';
 import { prisma } from '@/lib/db';
 import { getStripe } from '@/lib/stripe';
 
-export const runtime = 'edge';
-
 const STATUS_MAP: Record<string, 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELED' | 'PAUSED'> = {
   trialing: 'TRIALING',
   active: 'ACTIVE',
