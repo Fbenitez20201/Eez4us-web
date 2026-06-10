@@ -60,7 +60,7 @@ export function TvGateBoard({ initialEntries, schoolId, pickupPointId, vertical 
     [entries],
   );
 
-  const pageSize = vertical ? 9 : 6;
+  const pageSize = vertical ? 7 : 5;
   const totalPages = Math.max(1, Math.ceil(flat.length / pageSize));
   const page = usePageRotation(totalPages);
 
@@ -77,7 +77,7 @@ export function TvGateBoard({ initialEntries, schoolId, pickupPointId, vertical 
     );
   }
 
-  const nameSize = vertical ? 'text-4xl' : 'text-5xl';
+  const nameSize = vertical ? 'text-5xl' : 'text-6xl';
   const visible = flat.slice(page * pageSize, (page + 1) * pageSize);
 
   // Reagrupa SOLO lo visible en esta página, preservando los headers de sección.
@@ -122,7 +122,7 @@ export function TvGateBoard({ initialEntries, schoolId, pickupPointId, vertical 
                     <span className={cn('truncate font-black', nameSize)} style={{ color: 'var(--tv-fg)' }}>
                       {entry.student.firstName} {entry.student.lastName}
                     </span>
-                    <div className="mt-1 flex items-center gap-3 text-lg" style={{ color: 'var(--tv-fg2)' }}>
+                    <div className="mt-1 flex items-center gap-3 text-2xl" style={{ color: 'var(--tv-fg2)' }}>
                       {entry.student.grade && <span>{entry.student.grade.name}</span>}
                       {entry.student.grade && <span style={{ color: 'var(--tv-fg3)' }}>·</span>}
                       <span className="truncate">
@@ -134,21 +134,23 @@ export function TvGateBoard({ initialEntries, schoolId, pickupPointId, vertical 
 
                   <div className="flex shrink-0 items-center gap-6">
                     {entry.vehicle ? (
-                      <span className="inline-flex items-center gap-2 text-lg">
+                      <span className="inline-flex items-center gap-3 text-2xl">
                         <span
-                          className="inline-block h-4 w-4 rounded-full border"
+                          className="inline-block h-5 w-5 rounded-full border"
                           style={{ backgroundColor: entry.vehicle.color, borderColor: 'var(--tv-border)' }}
                         />
-                        <span className="font-mono font-bold tracking-wide" style={{ color: 'var(--tv-fg)' }}>
+                        <span className="font-black tracking-wide tabular-nums" style={{ color: 'var(--tv-fg)' }}>
                           {entry.vehicle.plate}
                         </span>
                       </span>
                     ) : (
-                      <span className="text-lg" style={{ color: 'var(--tv-fg2)' }}>
-                        Retiro en puerta · a pie
+                      <span className="text-2xl" style={{ color: 'var(--tv-fg2)' }}>
+                        {entry.origin === 'ESTOY_AFUERA'
+                          ? 'Padre afuera · sin auto'
+                          : 'Retiro en puerta · a pie'}
                       </span>
                     )}
-                    {!atGate && <TvEta etaSeconds={entry.etaSeconds} className="text-3xl" />}
+                    {!atGate && <TvEta etaSeconds={entry.etaSeconds} className="text-5xl" />}
                   </div>
                 </motion.div>
               );

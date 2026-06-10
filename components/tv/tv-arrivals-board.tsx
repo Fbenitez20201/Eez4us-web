@@ -40,7 +40,9 @@ export function TvArrivalsBoard({ initialTrips, schoolId, pickupPointId, vertica
 
   useEncryptedChannel(channelName, { 'trips.ranked': handleRanked });
 
-  const maxRows = vertical ? 12 : 8;
+  // Con la tipografía grande (pedido del jefe) entran menos filas; la rotación de
+  // páginas muestra el resto.
+  const maxRows = vertical ? 9 : 5;
   const totalPages = Math.max(1, Math.ceil(trips.length / maxRows));
   const page = usePageRotation(totalPages);
 
@@ -89,18 +91,18 @@ export function TvArrivalsBoard({ initialTrips, schoolId, pickupPointId, vertica
 
               <div className="flex min-w-0 flex-1 flex-col">
                 {trip.vehicle ? (
-                  <span className={cn('font-mono font-black tracking-wider', plateSize)} style={{ color: 'var(--tv-fg)' }}>
+                  <span className={cn('font-black tracking-wide tabular-nums', plateSize)} style={{ color: 'var(--tv-fg)' }}>
                     {trip.vehicle.plate}
                   </span>
                 ) : (
                   <span
-                    className={cn('font-black uppercase tracking-wide', vertical ? 'text-4xl' : 'text-5xl')}
+                    className={cn('font-black', vertical ? 'text-4xl' : 'text-5xl')}
                     style={{ color: 'var(--tv-fg2)' }}
                   >
                     {trip.origin === 'ESTOY_AFUERA' ? 'Afuera' : 'A pie'}
                   </span>
                 )}
-                <div className="mt-2 flex items-center gap-3 text-lg" style={{ color: 'var(--tv-fg2)' }}>
+                <div className="mt-2 flex items-center gap-3 text-2xl" style={{ color: 'var(--tv-fg2)' }}>
                   {trip.vehicle && (
                     <>
                       <span
@@ -120,7 +122,7 @@ export function TvArrivalsBoard({ initialTrips, schoolId, pickupPointId, vertica
               <div className="flex shrink-0 flex-col items-end gap-2">
                 <TvEta etaSeconds={trip.etaSeconds} etaUpdatedAt={trip.etaUpdatedAt} className={etaSize} />
                 <span
-                  className="rounded-lg px-3 py-1 text-base font-black uppercase tracking-wide"
+                  className="rounded-lg px-3 py-1 text-xl font-black"
                   style={
                     inZone
                       ? { background: 'var(--tv-emerald-chip)', color: 'var(--tv-emerald)' }

@@ -108,7 +108,7 @@ export function TvKioskShell({ schoolName, pickupName, view, theme = 'dark', chi
         <div className="min-w-0">
           <p className="truncate text-2xl font-black tracking-tight">{schoolName ?? 'Colegio'}</p>
           <p
-            className="text-sm font-bold uppercase tracking-[0.2em]"
+            className="text-base font-bold tracking-[0.06em]"
             style={{ color: 'var(--tv-fg2)' }}
           >
             {VIEW_LABEL[view]} · {pickupName}

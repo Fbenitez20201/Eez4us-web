@@ -18,7 +18,7 @@ export function ProximityPill({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border font-black uppercase tracking-wide',
+        'inline-flex items-center rounded-full border font-black',
         className,
       )}
       style={{ background: cfg.bg, color: cfg.fg, borderColor: cfg.bd }}

@@ -29,6 +29,9 @@ export type RosterProximity = 'EN_CAMINO' | 'CERCA' | 'EN_PUERTA';
 
 export interface RosterEntry {
   tripId: string;
+  // Cómo arrancó la recogida (mismo enum que Trip.origin). Opcional para no romper
+  // el contrato previo del mobile.
+  origin?: 'EN_CAMINO' | 'ESTOY_AFUERA' | 'WALKUP';
   student: {
     id: string;
     firstName: string;

@@ -109,6 +109,7 @@ export function tripToRosterEntries(trip: RosterTrip): RosterEntry[] {
     : null;
   return trip.tripStudents.map((ts) => ({
     tripId: trip.id,
+    origin: trip.origin,
     student: {
       id: ts.student.id,
       firstName: ts.student.firstName,

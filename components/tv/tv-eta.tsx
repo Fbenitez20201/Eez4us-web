@@ -11,7 +11,8 @@ interface TvEtaProps {
 }
 
 function label(remaining: number): { text: string; arriving: boolean } {
-  if (remaining <= 30) return { text: 'LLEGANDO', arriving: true };
+  // "Llegando" en Nunito redonda, sin caps mono — el jefe pidió tipografía menos agresiva
+  if (remaining <= 30) return { text: 'Llegando', arriving: true };
   const total = Math.floor(remaining);
   const mins = Math.floor(total / 60);
   const ss = (total % 60).toString().padStart(2, '0');
@@ -28,7 +29,7 @@ export function TvEta({ etaSeconds, etaUpdatedAt = null, className }: TvEtaProps
 
   if (etaSeconds == null) {
     return (
-      <span className={cn('font-mono font-black tabular-nums', className)} style={{ color: 'var(--tv-fg3)' }}>
+      <span className={cn('font-black tabular-nums', className)} style={{ color: 'var(--tv-fg3)' }}>
         —
       </span>
     );
@@ -44,7 +45,7 @@ export function TvEta({ etaSeconds, etaUpdatedAt = null, className }: TvEtaProps
 
   return (
     <span
-      className={cn('font-mono font-black tabular-nums', className)}
+      className={cn('font-black tabular-nums', className)}
       style={{ color: arriving ? 'var(--tv-emerald)' : 'var(--tv-amber)' }}
     >
       {text}

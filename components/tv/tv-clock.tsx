@@ -21,7 +21,7 @@ export function TvClock() {
     : '--:--:--';
 
   return (
-    <span className="font-mono tabular-nums" style={{ color: 'var(--tv-fg2)' }}>
+    <span className="font-bold tabular-nums" style={{ color: 'var(--tv-fg2)' }}>
       {text}
     </span>
   );
