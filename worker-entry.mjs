@@ -9,7 +9,7 @@ export default {
     return openNextDefault.fetch(request, env, ctx);
   },
   async scheduled(_event, env, ctx) {
-    const baseUrl = env.BETTER_AUTH_URL || 'https://www.eez4us.com';
+    const baseUrl = env.BETTER_AUTH_URL || 'https://eez4us.com';
     const url = `${baseUrl.replace(/\/$/, '')}/api/cron/check-alerts`;
     const secret = env.CRON_SECRET ?? '';
     const req = new Request(url, {

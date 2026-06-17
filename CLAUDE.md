@@ -155,6 +155,12 @@ Nunca commitear el `.env`. Cambios de credenciales solo con permiso explícito.
 - Commits en español, cortos, imperativos, sin `Co-Authored-By`.
 - Nunca tocar secrets de Cloudflare/EAS sin permiso explícito.
 
+## Órdenes directas
+
+Cuando das una orden imperativa (ej: "haz push", "deploya", "corre los tests"), 
+ejecútala sin pedir confirmación adicional. Las confirmaciones de seguridad solo 
+aplican a órdenes ambiguas o si algo se ve roto.
+
 ## NO hacer sin pedirlo
 
 - Landing pública, marketing, SEO, sitemaps.

@@ -4,6 +4,15 @@ account_id = "3531a4c03f7e5c47c6d4dcb7ca7a9733"
 compatibility_date = "2025-04-01"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 
+# Dominios personalizados (Custom Domains) — el Worker responde directo en ambos hosts.
+# eez4us.com (apex) es el host canónico: Cloudflare lo bindea directo, sin CNAME a www y
+# sin redirect 308, así que el header Authorization del mobile nunca se cae.
+# www queda también como Custom Domain directo por si alguien lo tipea. Zona en esta cuenta CF.
+routes = [
+  { pattern = "eez4us.com", custom_domain = true },
+  { pattern = "www.eez4us.com", custom_domain = true },
+]
+
 # =========================================================================
 # CI/CD — Cloudflare Workers Builds (conectar el repo en el dashboard de Cloudflare)
 #   Settings > Build:
@@ -30,7 +39,6 @@ crons = ["*/1 * * * *"]
 # Secrets a setear vía `wrangler secret put NAME` (NO en este archivo):
 #   DATABASE_URL                     Accelerate (prisma+postgres://...)
 #   BETTER_AUTH_SECRET               openssl rand -base64 32
-#   BETTER_AUTH_URL                  https://www.tu-dominio.tld
 #   PUSHER_APP_ID
 #   PUSHER_KEY
 #   PUSHER_SECRET
@@ -46,6 +54,8 @@ crons = ["*/1 * * * *"]
 [vars]
 PUSHER_CLUSTER = "mt1"
 NODE_ENV = "production"
+# URL canónica del app (apex, servido directo por el Worker). NO es secreto: es un host público.
+BETTER_AUTH_URL = "https://eez4us.com"
 # Resend self-hosted (fork FreeResend) — no secretos, son endpoint + remitente
 RESEND_BASE_URL = "https://mail.tequio.work"
 EMAIL_FROM = "tequio-mail@eez4us.com"
