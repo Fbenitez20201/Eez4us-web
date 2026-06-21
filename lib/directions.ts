@@ -32,8 +32,11 @@ export async function getRoute(origin: LatLng, dest: LatLng): Promise<RouteResul
   }
 
   const apiKey = process.env.GOOGLE_MAPS_BACKEND_KEY;
-  if (!apiKey) {
-    throw new Error('GOOGLE_MAPS_BACKEND_KEY no configurado');
+  // 'dev_placeholder' es el valor del .env de dev: tratado como "no configurado" para no
+  // gastar un fetch que Google va a rebotar con REQUEST_DENIED. En prod, setear el secret
+  // real con: wrangler secret put GOOGLE_MAPS_BACKEND_KEY (key con Directions API habilitada).
+  if (!apiKey || apiKey === 'dev_placeholder') {
+    throw new Error('GOOGLE_MAPS_BACKEND_KEY no configurado (placeholder o ausente)');
   }
 
   const url = new URL('https://maps.googleapis.com/maps/api/directions/json');

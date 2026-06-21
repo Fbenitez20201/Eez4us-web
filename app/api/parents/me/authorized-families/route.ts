@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
+import { DOCUMENT_TYPES } from '@/lib/documents';
 import { jsonError, requireRole } from '@/lib/session';
 
 const createSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
   relationship: z.string().trim().min(1).max(60).optional(),
+  documentType: z.enum(DOCUMENT_TYPES).optional(),
   idNumber: z.string().trim().min(1).max(40).optional(),
   idPhotoUrl: z.string().url().optional(),
 });
@@ -20,6 +22,7 @@ export async function GET(req: Request): Promise<Response> {
         id: true,
         fullName: true,
         relationship: true,
+        documentType: true,
         idNumber: true,
         idPhotoUrl: true,
         createdAt: true,
@@ -40,6 +43,7 @@ export async function POST(req: Request): Promise<Response> {
         parentId: session.user.id,
         fullName: body.fullName,
         relationship: body.relationship,
+        documentType: body.documentType,
         idNumber: body.idNumber,
         idPhotoUrl: body.idPhotoUrl,
       },
@@ -47,6 +51,7 @@ export async function POST(req: Request): Promise<Response> {
         id: true,
         fullName: true,
         relationship: true,
+        documentType: true,
         idNumber: true,
         idPhotoUrl: true,
       },

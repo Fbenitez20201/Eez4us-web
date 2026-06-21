@@ -24,6 +24,16 @@ export function readPriceId(): string {
   return v;
 }
 
+// Precio de Stripe por moneda de la escuela. Un Price de Stripe lleva su moneda fija, así que
+// el cobro en moneda local exige un Price por divisa: se setea STRIPE_PRICE_ID_<CCY> (ej.
+// STRIPE_PRICE_ID_MXN). Si no existe el de esa moneda, cae al STRIPE_PRICE_ID global (USD).
+export function priceIdForCurrency(currency?: string | null): string {
+  const ccy = (currency ?? 'USD').toUpperCase();
+  const specific = process.env[`STRIPE_PRICE_ID_${ccy}`];
+  if (specific) return specific;
+  return readPriceId();
+}
+
 export function readPortalReturnUrl(): string {
   return process.env.STRIPE_PORTAL_RETURN_URL ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/admin/billing`;
 }
@@ -55,16 +65,16 @@ export async function createSubscription(
   const stripe = getStripe();
   const school = await prisma.school.findUnique({
     where: { id: schoolId },
-    select: { stripeCustomerId: true },
+    select: { stripeCustomerId: true, currency: true },
   });
   if (!school?.stripeCustomerId) {
     throw new Error('SCHOOL_HAS_NO_CUSTOMER');
   }
   return stripe.subscriptions.create({
     customer: school.stripeCustomerId,
-    items: [{ price: readPriceId(), quantity: Math.max(quantity, 1) }],
+    items: [{ price: priceIdForCurrency(school.currency), quantity: Math.max(quantity, 1) }],
     proration_behavior: 'create_prorations',
-    metadata: { schoolId },
+    metadata: { schoolId, currency: school.currency },
   });
 }
 

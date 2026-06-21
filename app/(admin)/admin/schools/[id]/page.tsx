@@ -115,7 +115,7 @@ export default async function SchoolDetailPage({
               {school.subscription.currentPeriodEnd && (
                 <p>
                   Período actual hasta:{' '}
-                  {new Date(school.subscription.currentPeriodEnd).toLocaleDateString('es-AR')}
+                  {new Date(school.subscription.currentPeriodEnd).toLocaleDateString('es-MX')}
                 </p>
               )}
             </>

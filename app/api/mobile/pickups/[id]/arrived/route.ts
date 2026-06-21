@@ -25,7 +25,7 @@ export async function POST(
       },
     });
     await prisma.tripEvent.create({
-      data: { tripId: id, type: 'ARRIVED_GEOFENCE', metadata: { manual: true } },
+      data: { tripId: id, type: 'ARRIVED_MANUAL', metadata: { manual: true } },
     });
     try {
       await sendPushToSchoolRoles(trip.schoolId, ['director', 'support_staff'], {

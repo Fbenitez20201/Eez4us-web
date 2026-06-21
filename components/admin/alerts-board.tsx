@@ -44,7 +44,7 @@ const SEVERITY_STYLES: Record<AlertSeverity, { border: string; chip: string; lab
 
 function formatWhen(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('es', {
+    return new Date(iso).toLocaleString('es-MX', {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',

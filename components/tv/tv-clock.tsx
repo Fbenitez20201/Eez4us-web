@@ -12,7 +12,7 @@ export function TvClock() {
   }, []);
 
   const text = now
-    ? now.toLocaleTimeString('es', {
+    ? now.toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',

@@ -149,8 +149,16 @@ model School {
   locale        String  @default("es-MX")
   // densidad de la UI del panel admin: "comfortable" (default) | "compact" | "spacious"
   density       String  @default("comfortable")
+  // zona horaria IANA del colegio (ej. "America/El_Salvador", "America/Argentina/Buenos_Aires").
+  // Sin esto los reportes y dismissalTime se interpretan en UTC y dan días corridos. Default
+  // alineado al locale es-MX. El wizard/ajustes lo setean por país.
+  timezone      String  @default("America/Mexico_City")
+  // moneda de cobro de ESTA escuela (ISO 4217). El modelo B2B2C cobra por país, no siempre USD.
+  currency      String  @default("USD")
 
   stripeCustomerId String? @unique
+  // Cliente Openpay (México). Paralelo a stripeCustomerId; el ruteo por país/moneda decide cuál se cobra.
+  openpayCustomerId String? @unique
 
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -292,6 +300,9 @@ model AuthorizedFamily {
   parentId     String
   fullName     String
   relationship String? // "Tío", "Abuela"
+  // tipo de documento del país: DUI (SV) | DNI (AR) | RFC, CURP (MX) | PASSPORT | OTHER.
+  // Texto libre (no enum) para sumar países sin migración. null = legado sin tipo.
+  documentType String?
   idNumber     String?
   idPhotoUrl   String?
   active       Boolean  @default(true)
@@ -370,6 +381,9 @@ enum TripEventType {
   STARTED
   POSITION_UPDATE
   ARRIVED_GEOFENCE
+  // Llegada confirmada por el padre con el botón "Llegué"/"Estoy afuera", NO por geofence.
+  // Distinta de ARRIVED_GEOFENCE para que el reporte/auditoría separe ambos avisos.
+  ARRIVED_MANUAL
   DELIVERED_MANUAL
   CANCELLED
 }
@@ -511,8 +525,16 @@ model Subscription {
   id                   String             @id @default(cuid())
   schoolId             String             @unique
   stripeSubscriptionId String?            @unique
+  // "stripe" (cobro recurrente en Stripe) | "openpay" (México). El ruteo lo decide School.country/currency.
+  provider             String             @default("stripe")
   status               SubscriptionStatus @default(TRIALING)
-  pricePerStudent      Float              @default(10) // USD/alumno/mes
+  pricePerStudent      Float              @default(10) // monto/alumno/mes en `currency`
+  currency             String             @default("USD") // ISO 4217; copia de School.currency al crear
+  // Openpay no soporta suscripción per-seat dinámica: archivamos la tarjeta (source_id) + el
+  // device_session_id capturado al registrarla, y un cron cobra activeStudents x pricePerStudent cada mes.
+  openpayCardId          String?
+  openpayDeviceSessionId String?
+  nextChargeAt           DateTime?
   currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
   cancelAt             DateTime?
@@ -665,6 +687,8 @@ model TemporaryAuthorization {
   schoolId      String
   parentId      String
   personName    String
+  // tipo de documento del país (DUI/DNI/RFC/CURP/PASSPORT/OTHER). Acompaña a documentId.
+  documentType  String?
   documentId    String?
   vehicleInfo   String?
   validDate     DateTime
@@ -838,6 +862,10 @@ model Invoice {
   id              String        @id @default(cuid())
   schoolId        String
   stripeInvoiceId String?       @unique
+  provider        String        @default("stripe")
+  openpayChargeId String?       @unique
+  // `${schoolId}:${YYYY-MM}` — order_id de Openpay y guard a nivel DB contra doble cobro del mismo periodo.
+  idempotencyKey  String?       @unique
   amount          Float
   status          InvoiceStatus @default(PENDING)
   periodStart     DateTime?

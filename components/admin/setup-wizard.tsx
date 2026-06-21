@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AddressPicker, type AddressValue } from '@/components/admin/address-picker';
 import { PickupPointMap, type PickupPointMapValue } from '@/components/admin/pickup-point-map';
@@ -29,6 +29,8 @@ function generateCode(): string {
   return out;
 }
 
+// Fallback solo si la escuela todavía no tiene dirección geocodificada. El marker real se
+// centra en la dirección de la escuela (efecto abajo), no en una ciudad fija.
 const DEFAULT_LAT = 19.4326;
 const DEFAULT_LNG = -99.1332;
 
@@ -47,11 +49,21 @@ export function SetupWizard({ schoolId, initial }: SetupWizardProps) {
   const [internalCode, setInternalCode] = useState(initial.internalCode || generateCode());
 
   const [pickupName, setPickupName] = useState('Puerta principal');
+  const [pickupTouched, setPickupTouched] = useState(false);
   const [pickupMap, setPickupMap] = useState<PickupPointMapValue>({
     centerLat: initial.addressLat ?? DEFAULT_LAT,
     centerLng: initial.addressLng ?? DEFAULT_LNG,
     radiusMeters: 150,
   });
+
+  // El punto de recogida arranca centrado en la dirección de la escuela. En el alta nueva la
+  // dirección se geocodifica en el paso 1, así que sincronizamos el marker hasta que el
+  // director lo mueva a mano (puerta lateral, etc.).
+  useEffect(() => {
+    if (pickupTouched) return;
+    if (address.addressLat == null || address.addressLng == null) return;
+    setPickupMap((m) => ({ ...m, centerLat: address.addressLat!, centerLng: address.addressLng! }));
+  }, [address.addressLat, address.addressLng, pickupTouched]);
 
   function step1Valid() {
     return name.trim().length > 0 && address.addressText.trim().length > 0;
@@ -193,7 +205,10 @@ export function SetupWizard({ schoolId, initial }: SetupWizardProps) {
             <Label>Ubicación y radio</Label>
             <PickupPointMap
               value={pickupMap}
-              onChange={setPickupMap}
+              onChange={(v) => {
+                setPickupTouched(true);
+                setPickupMap(v);
+              }}
               className="h-[420px]"
             />
           </div>

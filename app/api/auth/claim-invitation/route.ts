@@ -62,6 +62,7 @@ export async function POST(req: Request): Promise<Response> {
         'INVITATION_ALREADY_USED',
         'INVITATION_EXPIRED',
         'SIGNUP_FAILED',
+        'PHONE_INVALID',
       ];
       if (known.includes(err.message)) {
         return Response.json({ error: err.message }, { status: 400 });

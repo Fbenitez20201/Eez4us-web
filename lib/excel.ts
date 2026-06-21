@@ -1,6 +1,8 @@
 import { read, utils } from 'xlsx';
 import { z } from 'zod';
 
+import { validatePhoneForCountry } from './phone';
+
 const parentRowSchema = z.object({
   firstName: z.string().trim().min(1, 'firstName requerido'),
   lastName: z.string().trim().min(1, 'lastName requerido'),
@@ -64,7 +66,12 @@ function splitIds(raw: unknown): string[] {
     .filter(Boolean);
 }
 
-export function parseParentsExcel(buffer: ArrayBuffer | Uint8Array): ParseParentsExcelResult {
+// `country` (ISO o nombre legible de la escuela) endurece la validación de teléfono al
+// prefijo+longitud de ese país. Omitirlo cae a E.164 genérico (compat hacia atrás).
+export function parseParentsExcel(
+  buffer: ArrayBuffer | Uint8Array,
+  country?: string | null,
+): ParseParentsExcelResult {
   const wb = read(buffer, { type: 'array' });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) {
@@ -101,6 +108,10 @@ export function parseParentsExcel(buffer: ArrayBuffer | Uint8Array): ParseParent
     }
     if (!parsed.data.email && !parsed.data.phoneE164) {
       errors.push({ row: idx + 2, message: 'falta email o phoneE164' });
+      return;
+    }
+    if (parsed.data.phoneE164 && !validatePhoneForCountry(parsed.data.phoneE164, country).valid) {
+      errors.push({ row: idx + 2, message: `phoneE164 no válido para el país de la escuela` });
       return;
     }
     parents.push(parsed.data);

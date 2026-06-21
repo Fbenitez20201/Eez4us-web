@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
+import { validatePhoneForCountry } from '@/lib/phone';
 import { jsonError, requireSession } from '@/lib/session';
 
 const updateSchema = z.object({
@@ -38,6 +39,20 @@ export async function PUT(req: Request): Promise<Response> {
   try {
     const session = await requireSession(req);
     const body = updateSchema.parse(await req.json());
+
+    // El teléfono debe respetar el país de la escuela del padre (prefijo + longitud).
+    if (body.phoneE164) {
+      const school = session.user.schoolId
+        ? await prisma.school.findUnique({
+            where: { id: session.user.schoolId },
+            select: { country: true },
+          })
+        : null;
+      if (!validatePhoneForCountry(body.phoneE164, school?.country).valid) {
+        return Response.json({ error: 'PHONE_INVALID' }, { status: 400 });
+      }
+    }
+
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: body,

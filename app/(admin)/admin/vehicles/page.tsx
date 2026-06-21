@@ -86,7 +86,7 @@ export default async function VehiclesPage({
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(v.createdAt).toLocaleDateString('es-AR')}
+                      {new Date(v.createdAt).toLocaleDateString('es-MX')}
                     </span>
                   </div>
                 </li>

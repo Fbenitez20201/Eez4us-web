@@ -80,7 +80,7 @@ export async function POST(req: Request): Promise<Response> {
           create: estoyAfuera
             ? [
                 { type: 'STARTED' as const, metadata: { source: 'ESTOY_AFUERA' } },
-                { type: 'ARRIVED_GEOFENCE' as const, metadata: { source: 'ESTOY_AFUERA' } },
+                { type: 'ARRIVED_MANUAL' as const, metadata: { source: 'ESTOY_AFUERA' } },
               ]
             : [{ type: 'STARTED' as const }],
         },

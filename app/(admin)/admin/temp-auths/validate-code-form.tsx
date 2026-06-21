@@ -7,10 +7,12 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { documentTypeLabel } from '@/lib/documents';
 
 interface ValidationResult {
   id: string;
   personName: string;
+  documentType: string | null;
   documentId: string | null;
   vehicleInfo: string | null;
   validDate: string;
@@ -97,7 +99,9 @@ export function ValidateCodeForm() {
               <p className="text-xs uppercase font-bold text-muted-foreground">Persona temporal</p>
               <p className="text-xl font-black">{result.personName}</p>
               {result.documentId && (
-                <p className="text-sm">Documento: {result.documentId}</p>
+                <p className="text-sm">
+                  Documento: {documentTypeLabel(result.documentType) ?? 'Doc'} — {result.documentId}
+                </p>
               )}
               {result.vehicleInfo && (
                 <p className="text-sm">Vehículo: {result.vehicleInfo}</p>

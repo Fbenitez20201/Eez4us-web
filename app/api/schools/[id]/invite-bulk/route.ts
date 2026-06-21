@@ -19,8 +19,13 @@ export async function POST(
       return Response.json({ error: 'FILE_REQUIRED' }, { status: 400 });
     }
 
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { country: true },
+    });
+
     const buf = new Uint8Array(await file.arrayBuffer());
-    const { parents, errors } = parseParentsExcel(buf);
+    const { parents, errors } = parseParentsExcel(buf, school?.country);
     if (!parents.length) {
       return Response.json({ error: 'NO_VALID_ROWS', errors }, { status: 400 });
     }

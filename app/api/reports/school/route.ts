@@ -1,11 +1,8 @@
 import { prisma } from '@/lib/db';
+import { dayKeyInTz, lastLocalDays } from '@/lib/format';
 import { jsonError, requireRole } from '@/lib/session';
 
 const ALLOWED_ROLES = ['director', 'super_admin'];
-
-function dayKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
 
 export async function GET(req: Request): Promise<Response> {
   try {
@@ -19,11 +16,18 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: 'FORBIDDEN_SCHOOL' }, { status: 403 });
     }
 
+    const school = await prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { timezone: true },
+    });
+    const tz = school?.timezone ?? null;
+
     const daysParam = Number(url.searchParams.get('days') ?? '30');
     const days = Math.min(Math.max(daysParam, 7), 90);
+    // Cutoff con margen de 1 día por el corrimiento UTC↔local; el bucketing local descarta sobrantes.
     const cutoff = new Date();
     cutoff.setUTCHours(0, 0, 0, 0);
-    cutoff.setUTCDate(cutoff.getUTCDate() - (days - 1));
+    cutoff.setUTCDate(cutoff.getUTCDate() - days);
 
     const trips = await prisma.trip.findMany({
       where: { schoolId, status: 'ENTREGADO', deliveredAt: { gte: cutoff } },
@@ -35,18 +39,13 @@ export async function GET(req: Request): Promise<Response> {
       },
     });
 
-    const dayBuckets: string[] = [];
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setUTCHours(0, 0, 0, 0);
-      d.setUTCDate(d.getUTCDate() - i);
-      dayBuckets.push(dayKey(d));
-    }
+    // Días bucketeados en la hora local del colegio (no UTC).
+    const dayBuckets = lastLocalDays(days, tz);
 
     const seriesByStudent = new Map<string, { name: string; data: Map<string, number> }>();
     for (const t of trips) {
       if (!t.deliveredAt) continue;
-      const k = dayKey(t.deliveredAt);
+      const k = dayKeyInTz(t.deliveredAt, tz);
       for (const ts of t.tripStudents) {
         const name = `${ts.student.firstName} ${ts.student.lastName}`;
         const cur = seriesByStudent.get(ts.studentId) ?? { name, data: new Map() };

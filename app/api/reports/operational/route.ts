@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db';
+import { dayKeyInTz, lastLocalDays } from '@/lib/format';
 import { jsonError, requireRole } from '@/lib/session';
 
 const ALLOWED_ROLES = ['director', 'super_admin'];
@@ -8,19 +9,8 @@ interface DayBucket {
   count: number;
 }
 
-function dayKey(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function buildEmptyBuckets(days: number): DayBucket[] {
-  const out: DayBucket[] = [];
-  const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() - i);
-    out.push({ day: dayKey(d), count: 0 });
-  }
-  return out;
+function buildEmptyBuckets(days: number, timeZone: string | null): DayBucket[] {
+  return lastLocalDays(days, timeZone).map((day) => ({ day, count: 0 }));
 }
 
 export async function GET(req: Request): Promise<Response> {
@@ -32,12 +22,24 @@ export async function GET(req: Request): Promise<Response> {
       return Response.json({ error: 'NO_SCHOOL' }, { status: 400 });
     }
 
+    // Los días se bucketean en la hora local del colegio (no UTC) para que el "hoy" del
+    // reporte coincida con el del director. El rollup global del super_admin usa UTC explícito
+    // (mezcla de zonas: el corte de día es arbitrario, UTC es el neutral).
+    const tz = schoolFilter
+      ? (await prisma.school.findUnique({
+          where: { id: schoolFilter },
+          select: { timezone: true },
+        }))?.timezone ?? 'UTC'
+      : 'UTC';
+
     const monthStart = new Date();
     monthStart.setUTCDate(1);
     monthStart.setUTCHours(0, 0, 0, 0);
+    // 1 día extra de colchón sobre los 30 buckets: el corrimiento UTC↔local no descarta el día
+    // más viejo. El bucketing local ignora los sobrantes.
     const dayCutoff = new Date();
     dayCutoff.setUTCHours(0, 0, 0, 0);
-    dayCutoff.setUTCDate(dayCutoff.getUTCDate() - 29);
+    dayCutoff.setUTCDate(dayCutoff.getUTCDate() - 30);
 
     const studentWhere = isSuper ? { active: true } : { active: true, schoolId: schoolFilter };
     const tripMonthWhere = isSuper
@@ -103,10 +105,10 @@ export async function GET(req: Request): Promise<Response> {
     const canceled = byStatus.find((s) => s.status === 'CANCELADO')?._count._all ?? 0;
     const total = tripsThisMonth || 1;
 
-    const buckets = buildEmptyBuckets(30);
+    const buckets = buildEmptyBuckets(30, tz);
     const idx = new Map(buckets.map((b, i) => [b.day, i]));
     for (const t of recentTrips) {
-      const k = dayKey(t.startedAt);
+      const k = dayKeyInTz(t.startedAt, tz);
       const i = idx.get(k);
       if (i !== undefined) buckets[i].count += 1;
     }

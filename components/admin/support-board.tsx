@@ -180,7 +180,7 @@ export function SupportBoard({ scope, canAdmin }: SupportBoardProps) {
                       <Badge variant={sb.variant}>{sb.label}</Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {new Date(t.createdAt).toLocaleDateString('es-AR')}
+                      {new Date(t.createdAt).toLocaleDateString('es-MX')}
                     </TableCell>
                     {canAdmin && (
                       <TableCell className="text-right">

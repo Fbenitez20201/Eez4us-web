@@ -175,7 +175,7 @@ export default async function InvitationsPage({
             <Badge variant="success">Registrado</Badge>
             {r.claimedAt && (
               <p className="mt-0.5 text-[10px] text-muted-foreground">
-                {new Date(r.claimedAt).toLocaleDateString('es')}
+                {new Date(r.claimedAt).toLocaleDateString('es-MX')}
               </p>
             )}
           </div>
@@ -190,7 +190,7 @@ export default async function InvitationsPage({
       header: 'Creada',
       cell: (r) => (
         <span className="font-mono text-xs">
-          {new Date(r.createdAt).toLocaleDateString('es')}
+          {new Date(r.createdAt).toLocaleDateString('es-MX')}
         </span>
       ),
     },

@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
+import { DOCUMENT_TYPES } from '@/lib/documents';
 import { jsonError, requireRole } from '@/lib/session';
 
 const updateSchema = z.object({
   fullName: z.string().trim().min(1).max(120).optional(),
   relationship: z.string().trim().max(40).nullable().optional(),
+  documentType: z.enum(DOCUMENT_TYPES).nullable().optional(),
   idNumber: z.string().trim().max(40).nullable().optional(),
   idPhotoUrl: z.string().url().nullable().optional(),
   active: z.boolean().optional(),

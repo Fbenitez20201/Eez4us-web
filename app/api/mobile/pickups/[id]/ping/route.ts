@@ -75,6 +75,7 @@ export async function POST(
       insideGeofence: result.insideGeofence,
       arrivedFiredNow: result.arrivedFiredNow,
       recomputed: result.recomputed,
+      etaError: result.etaError ?? false,
     });
   } catch (err) {
     if (err instanceof z.ZodError) {

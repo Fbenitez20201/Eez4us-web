@@ -71,7 +71,7 @@ export default async function MessagesPage() {
                         </span>
                       )}
                       <span className="text-xs text-muted-foreground">
-                        {new Date(c.lastMessageAt).toLocaleString('es-AR', {
+                        {new Date(c.lastMessageAt).toLocaleString('es-MX', {
                           dateStyle: 'short',
                           timeStyle: 'short',
                         })}

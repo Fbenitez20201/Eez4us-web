@@ -14,6 +14,11 @@ export interface RecomputeResult {
   insideGeofence: boolean;
   arrivedFiredNow: boolean;
   recomputed: boolean;
+  // true = se intentó recalcular el ETA pero Directions falló (key faltante/ inválida,
+  // API no habilitada, throttle de Google). El ping NO se rompe: la posición ya se guardó
+  // y el semáforo del portón sigue andando con la última posición; solo el ETA numérico
+  // queda con su valor previo. Útil para diagnosticar GOOGLE_MAPS_BACKEND_KEY desde la app.
+  etaError?: boolean;
 }
 
 export function distanceMeters(
@@ -92,7 +97,25 @@ export async function recomputeTripEta(tripId: string): Promise<RecomputeResult>
     };
   }
 
-  const route = await getRoute(current, center);
+  // Directions es best-effort: si la key no está / la API no está habilitada / Google
+  // throttlea, NO tiramos el ping (la telemetría ya se guardó y el semáforo no depende del
+  // ETA numérico). Degradamos: dejamos el etaSeconds previo y marcamos etaError.
+  let route;
+  try {
+    route = await getRoute(current, center);
+  } catch (err) {
+    console.error('[eta] Directions falló, ETA queda con valor previo:', (err as Error).message);
+    return {
+      trip,
+      etaSeconds: trip.etaSeconds,
+      insideGeofence,
+      // el geofence/arrived no se dispara en esta rama (ya retornó antes si aplicaba).
+      arrivedFiredNow: false,
+      recomputed: false,
+      etaError: true,
+    };
+  }
+
   const now = new Date();
   await prisma.trip.update({
     where: { id: tripId },

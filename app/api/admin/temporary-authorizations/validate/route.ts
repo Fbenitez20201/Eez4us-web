@@ -45,6 +45,7 @@ export async function POST(req: Request): Promise<Response> {
       authorization: {
         id: auth.id,
         personName: auth.personName,
+        documentType: auth.documentType,
         documentId: auth.documentId,
         vehicleInfo: auth.vehicleInfo,
         validDate: auth.validDate.toISOString(),

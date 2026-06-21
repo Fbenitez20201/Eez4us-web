@@ -6,6 +6,7 @@ import { auth } from './auth';
 import { prisma } from './db';
 import { sendInvitationEmail } from './mailer';
 import { sendWhatsAppInvitation } from './n8n';
+import { validatePhoneForCountry } from './phone';
 
 const TOKEN_ALPHABET = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 const generateToken = customAlphabet(TOKEN_ALPHABET, 24);
@@ -178,8 +179,18 @@ export async function inviteRepresentatives({
     parentName: string;
   }> = [];
 
+  // País de la escuela para validar el teléfono por prefijo+longitud (E.164 si es desconocido).
+  const school = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: { country: true },
+  });
+
   for (const rep of representatives) {
     const repName = `${rep.firstName} ${rep.lastName}`.trim();
+    if (rep.phoneE164 && !validatePhoneForCountry(rep.phoneE164, school?.country).valid) {
+      repErrors.push({ rep: repName, reason: 'PHONE_INVALID' });
+      continue;
+    }
     const channel = pickChannel(rep);
     if (!channel) {
       repErrors.push({ rep: repName, reason: 'REP_NEEDS_CONTACT' });
@@ -267,6 +278,17 @@ export async function claimInvitation({
   }
   if (invitation.expiresAt.getTime() < Date.now()) {
     throw new Error('INVITATION_EXPIRED');
+  }
+
+  // El padre puede tipear su teléfono al claimear: validarlo contra el país de la escuela.
+  if (phoneE164) {
+    const school = await prisma.school.findUnique({
+      where: { id: invitation.schoolId },
+      select: { country: true },
+    });
+    if (!validatePhoneForCountry(phoneE164, school?.country).valid) {
+      throw new Error('PHONE_INVALID');
+    }
   }
 
   const email =

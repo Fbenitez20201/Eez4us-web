@@ -1,10 +1,12 @@
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
+import { DOCUMENT_TYPES } from '@/lib/documents';
 import { jsonError, requireRole } from '@/lib/session';
 
 const schema = z.object({
   personName: z.string().trim().min(1).max(120),
+  documentType: z.enum(DOCUMENT_TYPES).optional(),
   documentId: z.string().trim().max(40).optional(),
   vehicleInfo: z.string().trim().max(120).optional(),
   validDate: z.string().datetime(),
@@ -60,6 +62,7 @@ export async function POST(req: Request): Promise<Response> {
         schoolId: session.user.schoolId,
         parentId: session.user.id,
         personName: body.personName,
+        documentType: body.documentType,
         documentId: body.documentId,
         vehicleInfo: body.vehicleInfo,
         validDate: new Date(body.validDate),

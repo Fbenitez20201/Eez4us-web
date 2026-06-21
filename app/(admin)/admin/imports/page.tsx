@@ -52,7 +52,7 @@ export default async function ImportsPage() {
                       <p className="font-bold">{j.filename}</p>
                       <p className="text-xs text-muted-foreground">
                         Por {j.createdBy.name ?? j.createdBy.email} ·{' '}
-                        {new Date(j.createdAt).toLocaleString('es-AR')}
+                        {new Date(j.createdAt).toLocaleString('es-MX')}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 text-xs">

@@ -75,7 +75,7 @@ export default async function ConversationPage({
                   <p>{m.body}</p>
                   <p className="mt-1 text-[10px] opacity-70">
                     {m.sender?.name ?? m.senderType} ·{' '}
-                    {new Date(m.createdAt).toLocaleTimeString('es-AR', {
+                    {new Date(m.createdAt).toLocaleTimeString('es-MX', {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}

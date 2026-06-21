@@ -1,11 +1,13 @@
 import { z } from 'zod';
 
 import { prisma } from '@/lib/db';
+import { DOCUMENT_TYPES } from '@/lib/documents';
 import { jsonError, requireRole } from '@/lib/session';
 
 const createSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
   relationship: z.string().trim().max(40).optional(),
+  documentType: z.enum(DOCUMENT_TYPES).optional(),
   idNumber: z.string().trim().max(40).optional(),
   idPhotoUrl: z.string().url().optional(),
 });

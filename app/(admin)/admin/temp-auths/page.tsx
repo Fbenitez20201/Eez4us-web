@@ -120,7 +120,7 @@ export default async function TempAuthsPage() {
                       <p className="text-xs text-muted-foreground">
                         Padre: {h.parent.name ?? h.parent.email} · Código{' '}
                         <code className="rounded bg-secondary px-1 py-0.5">{h.code}</code> ·{' '}
-                        Válido {new Date(h.validDate).toLocaleDateString('es-AR')}
+                        Válido {new Date(h.validDate).toLocaleDateString('es-MX')}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Recoge a: {studentNames(h.studentIds).join(', ') || '—'}

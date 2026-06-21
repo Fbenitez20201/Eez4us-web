@@ -47,7 +47,7 @@ export default async function AuditPage() {
                       </p>
                     </div>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(log.createdAt).toLocaleString('es-AR')}
+                      {new Date(log.createdAt).toLocaleString('es-MX')}
                     </span>
                   </div>
                   {log.metadata != null && (
